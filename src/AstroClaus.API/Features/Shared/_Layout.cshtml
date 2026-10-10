@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@(ViewData["Title"] is string t ? $"{t} · Astro Santa" : "Astro Santa")</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Nunito:wght@400;600;700&family=Press+Start+2P&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/tokens.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <header class="site-header">
+        <a class="logo" href="/">ASTRO SANTA</a>
+    </header>
+
+    <main class="site-main">
+        @RenderBody()
+    </main>
+
+    <footer class="site-footer caption">
+        <span class="icon icon-snowflake" aria-hidden="true"></span>
+        <a href="/terms">Terms</a>
+    </footer>
+
+    @* One entry point for scripts. Motion animations plug in here later. *@
+    <script type="module" src="~/js/app.js" asp-append-version="true"></script>
+</body>
+</html>

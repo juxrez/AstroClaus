@@ -1,0 +1,25 @@
+@* Model: the full link to the letter. *@
+@model string
+@{
+    var whatsApp = "https://wa.me/?text=" + Uri.EscapeDataString("I wrote a letter to Santa. Read it here: " + Model);
+}
+<dialog class="modal" id="share-modal" data-motion="share-modal">
+    <div class="modal-body">
+        <h2 class="title">Share your letter</h2>
+        <p class="body">Send this link to Santa, or to anyone who should read it.</p>
+
+        <label class="caption" for="share-link">Letter link</label>
+        <input class="field" id="share-link" type="text" readonly value="@Model" />
+
+        <div class="modal-actions">
+            <button type="button" class="btn btn-pine" id="copy-link">
+                <span class="icon icon-share-link" aria-hidden="true"></span>
+                <span data-label>Copy link</span>
+            </button>
+            <a class="btn btn-secondary" href="@whatsApp" target="_blank" rel="noopener">Share on WhatsApp</a>
+            <button type="button" class="btn btn-secondary" id="native-share" hidden>More ways to share</button>
+        </div>
+
+        <button type="button" class="btn btn-quiet" data-close-modal>Close</button>
+    </div>
+</dialog>

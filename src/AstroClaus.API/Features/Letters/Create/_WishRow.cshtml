@@ -1,0 +1,20 @@
+@* Model: (index, name). The index is "__i__" in the template the page script clones. *@
+@model (string Index, string Name)
+<li class="wish" data-wish data-motion="wish-item">
+    <div class="wish-top">
+        <input class="field" type="text" name="Form.Wishes[@Model.Index].Name" value="@Model.Name"
+               maxlength="@Letters.LetterLimits.WishNameMax" placeholder="A wish, like &quot;a red bike&quot;"
+               aria-label="Wish" />
+        <button type="button" class="btn btn-quiet" data-remove-wish>Remove</button>
+    </div>
+    <div class="wish-images">
+        <label class="btn btn-secondary btn-small">
+            Add picture
+            <input type="file" name="Form.Wishes[@Model.Index].Image1" accept="image/jpeg,image/png,image/webp" data-image hidden />
+        </label>
+        <label class="btn btn-secondary btn-small">
+            Add picture
+            <input type="file" name="Form.Wishes[@Model.Index].Image2" accept="image/jpeg,image/png,image/webp" data-image hidden />
+        </label>
+    </div>
+</li>

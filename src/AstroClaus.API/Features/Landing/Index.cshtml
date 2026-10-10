@@ -1,0 +1,18 @@
+@page "/"
+@model AstroClaus.API.Features.Landing.IndexModel
+@{
+    ViewData["Title"] = "Write a letter to Santa";
+}
+
+<section class="hero card card-hero" data-motion="hero">
+    <partial name="_Astro" model="@("alone")" />
+    <div class="hero-text">
+        <p class="overline">TO: THE NORTH POLE</p>
+        <h1 class="hero-title">Write a letter to Santa</h1>
+        <p class="body-lg">Tell him what you wish for, and Astro will carry your letter north. No account needed.</p>
+        <a class="btn btn-primary" href="/write">
+            <span class="icon icon-envelope" aria-hidden="true"></span>
+            Write your letter
+        </a>
+    </div>
+</section>

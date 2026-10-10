@@ -1,0 +1,56 @@
+@page "/write"
+@model AstroClaus.API.Features.Letters.Create.CreateModel
+@using AstroClaus.API.Features.Letters
+@{
+    ViewData["Title"] = "Write your letter";
+}
+
+<section class="card" data-motion="create">
+    <div class="page-head">
+        <partial name="_Astro" model="@("side")" />
+        <h1 class="title">Dear Santa,</h1>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" id="letter-form" data-max-wishes="@LetterLimits.MaxWishes" data-max-image-bytes="@LetterLimits.MaxImageBytes">
+        <div asp-validation-summary="All" class="banner banner-error body"></div>
+
+        <div class="group">
+            <label class="heading" for="from">Your nickname</label>
+            <input class="field" id="from" asp-for="Form.From" maxlength="@LetterLimits.FromMax" placeholder="Who is this from?" autocomplete="off" />
+        </div>
+
+        <div class="group">
+            <label class="heading" for="message">Your message</label>
+            <textarea class="field field-paper body-lg" id="message" asp-for="Form.Message" rows="4"
+                      maxlength="@LetterLimits.MessageMax" placeholder="This year I have been very good..."></textarea>
+            <p class="caption muted" aria-live="polite"><span id="message-count">0</span> / @LetterLimits.MessageMax</p>
+        </div>
+
+        <div class="group">
+            <h2 class="heading">My wish list</h2>
+            <p class="caption muted">Add up to @LetterLimits.MaxWishes wishes, with up to 2 pictures each. A screenshot is the easiest way to show Santa what you mean. Each picture must be under 300 KB.</p>
+
+            <ol class="wishes" id="wishes">
+                @for (var i = 0; i < Model.Form.Wishes.Count; i++)
+                {
+                    <partial name="_WishRow" model="@((i.ToString(), Model.Form.Wishes[i].Name))" />
+                }
+            </ol>
+
+            <button type="button" class="btn btn-secondary" id="add-wish">Add another wish</button>
+            <p class="caption error-text" id="image-error" role="alert" hidden></p>
+        </div>
+
+        <template id="wish-template">
+            <partial name="_WishRow" model="@(("__i__", ""))" />
+        </template>
+
+        <div class="actions">
+            <button type="submit" class="btn btn-primary">
+                <span class="icon icon-send" aria-hidden="true"></span>
+                Send to Santa
+            </button>
+            <p class="caption muted">By sending, you agree to the <a href="/terms">terms</a>. A sent letter can't be changed.</p>
+        </div>
+    </form>
+</section>

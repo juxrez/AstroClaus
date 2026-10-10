@@ -1,0 +1,46 @@
+/* Astro Santa design system, Daylight theme. Source: the design system's tokens.json. */
+:root {
+  --surface: #fdf6ea;
+  --surface-raised: #fffdf8;
+  --surface-sunken: #f5ead4;
+  --line: #e3d4b8;
+  --border-strong: #a08955;
+  --ink: #2c2016;
+  --ink-muted: #756041;
+  --holly: #c01f2f;
+  --holly-soft: #fbe1e0;
+  --on-holly: #fff8ef;
+  --pine: #2c6e3f;
+  --pine-soft: #e0efdf;
+  --on-pine: #f4fbf1;
+  --gold: #875b0e;
+  --gold-soft: #f6e9c9;
+  --frost: #216197;
+  --frost-soft: #e2edf7;
+
+  --font-display: "Fredoka", "Trebuchet MS", system-ui, sans-serif;
+  --font-sans: "Nunito", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-pixel: "Press Start 2P", "Courier New", ui-monospace, monospace;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-full: 9999px;
+
+  --shadow-sm: 0 1px 2px #2c201614, 0 1px 3px #2c201612;
+  --shadow-md: 0 2px 6px #2c201614, 0 8px 20px -4px #2c201621;
+  --shadow-lg: 0 8px 24px -4px #2c201626, 0 20px 48px -8px #2c20162e;
+  --glow: 0 0 0 1px #c01f2f33, 0 6px 20px -4px #c01f2f55;
+  --focus-ring: 0 0 0 2px #fdf6ea, 0 0 0 4px #216197;
+
+  --opacity-disabled: 0.45;
+}
