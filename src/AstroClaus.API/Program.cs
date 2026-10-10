@@ -16,7 +16,8 @@ var credential = builder.Environment.IsDevelopment()
     })
     : new DefaultAzureCredential();
 
-builder.Services.AddSingleton(new BlobServiceClient(new Uri(accountURL), credential)); builder.Services.AddSingleton<ILetterStore, BlobLetterStore>();
+builder.Services.AddSingleton(new BlobServiceClient(new Uri(accountURL), credential)); 
+builder.Services.AddSingleton<ILetterStore, BlobLetterStore>();
 
 var app = builder.Build();
 

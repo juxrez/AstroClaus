@@ -91,7 +91,7 @@ function initCreateForm() {
 
     if (file && file.size > maxImageBytes) {
       input.value = "";
-      imageError.textContent = `${file.name} is over 300 KB. Try a screenshot instead.`;
+      imageError.textContent = `${file.name} is over ${maxImageBytes / 1024} KB. Try a screenshot instead.`;
       imageError.hidden = false;
       label.classList.remove("is-filled");
       label.firstChild.textContent = "Add picture";
