@@ -7,6 +7,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{827E0CD3-B72
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AstroClaus.API", "src\AstroClaus.API\AstroClaus.API.csproj", "{09E352DE-FC81-4ED4-AA77-F8E386CE9581}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{0C88DD14-F956-CE84-757C-A364CCF449FC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AstroClaus.API.Tests", "test\AstroClaus.API.Tests\AstroClaus.API.Tests.csproj", "{ED0B7EEF-32F1-485F-B31B-FF93FBCBB10B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -29,11 +33,24 @@ Global
 		{09E352DE-FC81-4ED4-AA77-F8E386CE9581}.Release|x64.Build.0 = Release|Any CPU
 		{09E352DE-FC81-4ED4-AA77-F8E386CE9581}.Release|x86.ActiveCfg = Release|Any CPU
 		{09E352DE-FC81-4ED4-AA77-F8E386CE9581}.Release|x86.Build.0 = Release|Any CPU
+		{ED0B7EEF-32F1-485F-B31B-FF93FBCBB10B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ED0B7EEF-32F1-485F-B31B-FF93FBCBB10B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ED0B7EEF-32F1-485F-B31B-FF93FBCBB10B}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{ED0B7EEF-32F1-485F-B31B-FF93FBCBB10B}.Debug|x64.Build.0 = Debug|Any CPU
+		{ED0B7EEF-32F1-485F-B31B-FF93FBCBB10B}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{ED0B7EEF-32F1-485F-B31B-FF93FBCBB10B}.Debug|x86.Build.0 = Debug|Any CPU
+		{ED0B7EEF-32F1-485F-B31B-FF93FBCBB10B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ED0B7EEF-32F1-485F-B31B-FF93FBCBB10B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ED0B7EEF-32F1-485F-B31B-FF93FBCBB10B}.Release|x64.ActiveCfg = Release|Any CPU
+		{ED0B7EEF-32F1-485F-B31B-FF93FBCBB10B}.Release|x64.Build.0 = Release|Any CPU
+		{ED0B7EEF-32F1-485F-B31B-FF93FBCBB10B}.Release|x86.ActiveCfg = Release|Any CPU
+		{ED0B7EEF-32F1-485F-B31B-FF93FBCBB10B}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{09E352DE-FC81-4ED4-AA77-F8E386CE9581} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{ED0B7EEF-32F1-485F-B31B-FF93FBCBB10B} = {0C88DD14-F956-CE84-757C-A364CCF449FC}
 	EndGlobalSection
 EndGlobal
