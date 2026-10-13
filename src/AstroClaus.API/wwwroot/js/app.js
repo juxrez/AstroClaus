@@ -1,20 +1,42 @@
 // Single script entry point.
 //
 // Motion: animations hook onto [data-motion="..."] elements already in the markup
-// (astro, hero, letter-paper, wish-item, share-modal, delivery). Import Motion here
-// and animate those; nothing in the pages needs to change.
+// (hero, letter-paper, wish-item, share-modal). Import Motion here and animate those;
+// nothing in the pages needs to change. Astro moves only in the diorama (js/diorama).
+
+import { startDiorama } from "./diorama/diorama.js";
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
+// ---- Just sent (view page) --------------------------------------------------
+// The "just sent" moment plays once. Drop ?sent from the address so a reload, or a link copied from
+// the address bar, shows the letter page the way everyone else sees it (DESIGN.md §2, rule 7).
+function forgetJustSent() {
+  const url = new URL(location.href);
+  if (!url.searchParams.has("sent")) return;
+  url.searchParams.delete("sent");
+  history.replaceState(history.state, "", url);
+}
+
+// ---- Modals (share, terms) ----------------------------------------------------
+// A button with data-open-modal="<id>" opens <dialog class="modal" id="<id>">. Its
+// [data-close-modal] buttons, Escape (built in) or a click on the backdrop close it.
+function initModals() {
+  $$("[data-open-modal]").forEach((button) =>
+    button.addEventListener("click", () => document.getElementById(button.dataset.openModal).showModal()));
+
+  $$("dialog.modal").forEach((modal) => {
+    $$("[data-close-modal]", modal).forEach((button) => button.addEventListener("click", () => modal.close()));
+    modal.addEventListener("click", (e) => { if (e.target === modal) modal.close(); });
+  });
+}
+
 // ---- Share modal (view page) ----------------------------------------------
-function initShareModal() {
+// contentShown: the modal opens on a just-sent letter only once the delivery has played.
+function initShareModal(contentShown) {
   const modal = $("#share-modal");
   if (!modal) return;
-
-  $$("[data-open-modal='share-modal']").forEach((b) => b.addEventListener("click", () => modal.showModal()));
-  $$("[data-close-modal]", modal).forEach((b) => b.addEventListener("click", () => modal.close()));
-  modal.addEventListener("click", (e) => { if (e.target === modal) modal.close(); });
 
   const copy = $("#copy-link");
   copy.addEventListener("click", async () => {
@@ -37,11 +59,12 @@ function initShareModal() {
       navigator.share({ title: "A letter to Santa", url: $("#share-link").value }).catch(() => {}));
   }
 
-  if ($("[data-open-share='true']")) modal.showModal();
+  if ($("[data-open-share='true']")) contentShown.then(() => modal.showModal());
 }
 
 // ---- Create letter form ----------------------------------------------------
-function initCreateForm() {
+// onSend: called as the letter is sent, so the diorama comes to the front while it saves.
+function initCreateForm(onSend) {
   const form = $("#letter-form");
   if (!form) return;
 
@@ -106,10 +129,14 @@ function initCreateForm() {
     rows().forEach((row, i) => {
       $$("[name]", row).forEach((el) => (el.name = el.name.replace(/Wishes\[[^\]]*\]/, `Wishes[${i}]`)));
     });
+    onSend();
   });
 
   refresh();
 }
 
-initShareModal();
-initCreateForm();
+const diorama = startDiorama();
+forgetJustSent();
+initModals();
+initShareModal(diorama.contentShown);
+initCreateForm(diorama.bringToFront);

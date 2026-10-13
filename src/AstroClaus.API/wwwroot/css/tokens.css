@@ -1,22 +1,42 @@
-/* Astro Santa design system, Daylight theme. Source: the design system's tokens.json. */
+/* Astro Santa design system, Night theme (the only theme the site uses).
+   Source: tokens.json of https://claude.ai/artifact/CYCmvmmH8qRT2HLFGatTgL. Change values there first.
+   The diorama does not read these: it keeps its own night colours (design/DESIGN.md §2, rule 3). */
 :root {
-  --surface: #fdf6ea;
-  --surface-raised: #fffdf8;
-  --surface-sunken: #f5ead4;
-  --line: #e3d4b8;
-  --border-strong: #a08955;
-  --ink: #2c2016;
-  --ink-muted: #756041;
-  --holly: #c01f2f;
-  --holly-soft: #fbe1e0;
-  --on-holly: #fff8ef;
-  --pine: #2c6e3f;
-  --pine-soft: #e0efdf;
-  --on-pine: #f4fbf1;
-  --gold: #875b0e;
-  --gold-soft: #f6e9c9;
-  --frost: #216197;
-  --frost-soft: #e2edf7;
+  color-scheme: dark;
+
+  /* Sky and moonlight */
+  --surface: #181f2b;
+  --surface-raised: #222b3a;
+  --surface-sunken: #11161f;
+  --line: #30444e;
+  --border-strong: #6a7984;
+  --ink: #e7e7de;
+  --ink-muted: #a9bcc7;
+
+  /* Lantern: the one primary action */
+  --lantern: #eeb669;
+  --on-lantern: #181f2b;
+  --lantern-ink: #eeb669;
+  --lantern-soft: #3a3122;
+
+  /* Cranberry: festive accents and errors */
+  --cranberry: #ec6f79;
+  --on-cranberry: #181f2b;
+  --cranberry-soft: #3d1f26;
+
+  /* Aurora: success and "delivered" */
+  --aurora: #8fd1b4;
+  --aurora-soft: #1d3530;
+
+  /* Ice: links, neutral information, focus */
+  --ice: #88a6bd;
+  --ice-soft: #1c2a3a;
+
+  /* Paper: the letter only */
+  --paper: #f3e7cf;
+  --on-paper: #2b2016;
+  --paper-muted: #6e5a3c;
+  --paper-line: #e3d2ad;
 
   --font-display: "Fredoka", "Trebuchet MS", system-ui, sans-serif;
   --font-sans: "Nunito", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -36,11 +56,11 @@
   --radius-xl: 28px;
   --radius-full: 9999px;
 
-  --shadow-sm: 0 1px 2px #2c201614, 0 1px 3px #2c201612;
-  --shadow-md: 0 2px 6px #2c201614, 0 8px 20px -4px #2c201621;
-  --shadow-lg: 0 8px 24px -4px #2c201626, 0 20px 48px -8px #2c20162e;
-  --glow: 0 0 0 1px #c01f2f33, 0 6px 20px -4px #c01f2f55;
-  --focus-ring: 0 0 0 2px #fdf6ea, 0 0 0 4px #216197;
+  --shadow-sm: 0 1px 3px #0000005c;
+  --shadow-md: 0 10px 24px -6px #00000080;
+  --shadow-lg: 0 20px 48px -10px #000000a6;
+  --glow: 0 0 0 1px #eeb66940, 0 6px 28px -4px #eeb66973;
+  --focus-ring: 0 0 0 2px #181f2b, 0 0 0 4px #88a6bd;
 
   --opacity-disabled: 0.45;
 }

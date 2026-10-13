@@ -5,9 +5,8 @@
     ViewData["Title"] = "Write your letter";
 }
 
-<section class="card" data-motion="create">
+<section class="page" data-motion="create">
     <div class="page-head">
-        <partial name="_Astro" model="@("side")" />
         <h1 class="title">Dear Santa,</h1>
     </div>
 
@@ -21,7 +20,7 @@
 
         <div class="group">
             <label class="heading" for="message">Your message</label>
-            <textarea class="field field-paper body-lg" id="message" asp-for="Form.Message" rows="4"
+            <textarea class="field body-lg" id="message" asp-for="Form.Message" rows="4"
                       maxlength="@LetterLimits.MessageMax" placeholder="This year I have been very good..."></textarea>
             <p class="caption muted" aria-live="polite"><span id="message-count">0</span> / @LetterLimits.MessageMax</p>
         </div>
@@ -50,7 +49,7 @@
                 <span class="icon icon-send" aria-hidden="true"></span>
                 Send to Santa
             </button>
-            <p class="caption muted">By sending, you agree to the <a href="/terms">terms</a>. A sent letter can't be changed.</p>
+            <p class="caption muted">By sending, you agree to the <button type="button" class="link" data-open-modal="terms-modal">terms</button>. A sent letter can't be changed.</p>
         </div>
     </form>
 </section>

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+@* ViewData["Diorama"]: "delivery" on the page a letter was just sent to, otherwise the plain scene (design/DESIGN.md §2). *@
+<html lang="en" data-diorama="@(ViewData["Diorama"] as string ?? "plain")">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -9,22 +10,52 @@
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Nunito:wght@400;600;700&family=Press+Start+2P&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="~/css/tokens.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+
+    @* Before the first paint, decide whether the diorama starts in front of the content: on the first
+       page of this tab (rule 5) or right after a letter is sent (rule 6). js/diorama takes over from
+       here; if it never does, the content shows anyway (rule 11). *@
+    <script>
+        (function () {
+            var root = document.documentElement;
+            var firstArrival = false;
+            try {
+                firstArrival = !sessionStorage.getItem("diorama:arrived");
+                sessionStorage.setItem("diorama:arrived", "1");
+            } catch (e) { /* storage unavailable: no opening */ }
+
+            if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+            if (!firstArrival && root.getAttribute("data-diorama") !== "delivery") return;
+
+            root.setAttribute("data-diorama-front", "");
+            var fallback = setTimeout(function () { root.removeAttribute("data-diorama-front"); }, 4000);
+            document.addEventListener("diorama:control", function () { clearTimeout(fallback); });
+        })();
+    </script>
+    <script type="importmap"></script>
 </head>
 <body>
-    <header class="site-header">
-        <a class="logo" href="/">ASTRO SANTA</a>
-    </header>
+    <div class="diorama" aria-hidden="true">
+        <canvas id="diorama" width="320" height="180"></canvas>
+    </div>
 
-    <main class="site-main">
-        @RenderBody()
-    </main>
+    <div class="panel" id="panel">
+        <header class="site-header">
+            <a class="logo" href="/">ASTRO SANTA</a>
+        </header>
 
-    <footer class="site-footer caption">
-        <span class="icon icon-snowflake" aria-hidden="true"></span>
-        <a href="/terms">Terms</a>
-    </footer>
+        <main class="site-main">
+            @RenderBody()
+        </main>
 
-    @* One entry point for scripts. Motion animations plug in here later. *@
+        <footer class="site-footer caption">
+            <span class="icon icon-snowflake" aria-hidden="true"></span>
+            <button type="button" class="link" data-open-modal="terms-modal">Terms</button>
+        </footer>
+    </div>
+
+    <partial name="_TermsModal" />
+
+    @* One entry point for scripts. *@
     <script type="module" src="~/js/app.js" asp-append-version="true"></script>
 </body>
 </html>

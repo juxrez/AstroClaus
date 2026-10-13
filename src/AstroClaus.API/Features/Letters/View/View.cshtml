@@ -2,20 +2,21 @@
 @model AstroClaus.API.Features.Letters.View.ViewModel
 @{
     ViewData["Title"] = Model.Letter is null ? "Letter delivered" : $"A letter from {Model.Letter.From}";
+    if (Model.JustSent)
+    {
+        ViewData["Diorama"] = "delivery";
+    }
 }
 
 @if (Model.Letter is { } letter)
 {
-    <section class="card" data-motion="view" data-open-share="@(Model.JustSent ? "true" : "false")">
-        <div class="page-head">
-            <div data-motion="delivery" data-state="@(Model.JustSent ? "delivering" : "resting")">
-                <partial name="_Astro" model="@("side")" />
+    <section class="page" data-motion="view" data-open-share="@(Model.JustSent ? "true" : "false")">
+        @if (Model.JustSent)
+        {
+            <div class="page-head">
+                <span class="badge badge-aurora pixel-tag">DELIVERED</span>
             </div>
-            @if (Model.JustSent)
-            {
-                <span class="badge badge-pine pixel-tag">DELIVERED</span>
-            }
-        </div>
+        }
 
         <article class="paper" data-motion="letter-paper">
             <p class="subtitle">Dear Santa,</p>
@@ -58,8 +59,7 @@
 }
 else
 {
-    <section class="card" data-motion="view">
-        <partial name="_Astro" model="@("side")" />
+    <section class="page" data-motion="view">
         <h1 class="title">This letter has been delivered</h1>
         <p class="body">Letters stay for 90 days, then Astro carries them to the North Pole for good. This one is already with Santa.</p>
         <a class="btn btn-primary" href="/write">Write a letter</a>

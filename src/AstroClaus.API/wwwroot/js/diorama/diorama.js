@@ -1,0 +1,214 @@
+// The diorama behind every page: when it plays, how it is framed, and when the page content
+// sits in front of it (design/DESIGN.md §2). The drawing itself lives in scene.js.
+//
+// Two attributes on <html> carry the state, and CSS does the fading:
+//   data-diorama="plain" | "delivery"   which version of the scene this page shows (set by the server)
+//   data-diorama-front                  the scene is in front and the content is faded out
+//
+// The inline script in _Layout sets data-diorama-front before the first paint (first arrival in the
+// tab, or a letter just sent). startDiorama() takes over from it.
+
+import { createScene } from "./scene.js";
+
+const OPENING_MS = 3000;           // rule 5: on first arrival the scene plays alone for 3 s
+const DELIVERY_LEAD_S = 3;         // rule 6: the delivery starts about 3 s before Astro dashes off...
+const AFTER_DELIVERY_MS = 1500;    // ...and the letter fades in about 1.5 s after he has left the screen
+const STILL_PLAIN_S = 10.4;        // rule 9: the frame shown instead of the loop with reduced motion
+const MAX_EXTRA_ZOOM = 2;          // how many scale steps framing may add to keep Astro clear of the panel
+const CLOCK_KEY = "diorama:clock"; // sessionStorage: wall-clock ms at which scene time was 0 (rule 8)
+const CONTROL_EVENT = "diorama:control"; // tells the inline script in _Layout to stand down
+
+const ASTRO_SPRITE = new URL("../../assets/diorama/astro.png", import.meta.url);
+const FRONT = "data-diorama-front";
+
+const root = document.documentElement;
+const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
+
+/**
+ * Starts the diorama on this page. Never throws: if anything fails, the content is shown.
+ * @returns {{ contentShown: Promise<void>, bringToFront: () => void }}
+ *   contentShown resolves the first time the page content is visible.
+ *   bringToFront fades the content out so the scene is in front (Send, rule 6).
+ */
+export function startDiorama() {
+  document.dispatchEvent(new Event(CONTROL_EVENT));
+  const content = createContent();
+
+  // Back from the letter page restores this page as it was left after Send: content faded out.
+  addEventListener("pageshow", (e) => { if (e.persisted) content.show(); });
+
+  start(content).catch((error) => {
+    console.error("Diorama failed to start", error);
+    content.show();
+  });
+
+  return {
+    contentShown: content.shown,
+    bringToFront: () => { if (!reducedMotion.matches) content.hide(); },
+  };
+}
+
+async function start(content) {
+  const delivering = root.dataset.diorama === "delivery";
+  const canvas = document.getElementById("diorama");
+  const panel = document.getElementById("panel");
+
+  const scene = createScene({ astroImage: await loadImage(ASTRO_SPRITE), variant: delivering ? "deliver" : undefined });
+  const startAt = delivering ? scene.delivery.dash - DELIVERY_LEAD_S : undefined;
+
+  // Reframe on any change to the screen's size, including the first layout (a tab opened in the
+  // background starts at 0x0, and some size changes never fire a window "resize").
+  new ResizeObserver(() => frame(canvas, scene, panel)).observe(canvas.parentElement);
+
+  play(canvas, scene, createClock(startAt), startAt ?? STILL_PLAIN_S, content);
+
+  if (!root.hasAttribute(FRONT)) {
+    content.show();
+  } else if (delivering) {
+    showContentAfter((scene.delivery.gone - startAt) * 1000 + AFTER_DELIVERY_MS, content);
+  } else {
+    showContentAfter(OPENING_MS, content);
+  }
+}
+
+// ---- Content in front of / behind the scene -------------------------------
+
+function createContent() {
+  let resolveShown;
+  const shown = new Promise((resolve) => (resolveShown = resolve));
+  return {
+    shown,
+    hide: () => root.setAttribute(FRONT, ""),
+    show: () => {
+      root.removeAttribute(FRONT);
+      resolveShown();
+    },
+  };
+}
+
+// Rule 5: any click or key press skips straight to the content. "click" rather than "pointerdown",
+// so the press that reveals the content can't also land on a button that has just appeared.
+function showContentAfter(ms, content) {
+  const show = () => content.show();
+  const timer = setTimeout(show, ms);
+  addEventListener("click", show);
+  addEventListener("keydown", show);
+  content.shown.then(() => {
+    clearTimeout(timer);
+    removeEventListener("click", show);
+    removeEventListener("keydown", show);
+  });
+}
+
+// ---- Playback ---------------------------------------------------------------
+
+// Plays the loop, or holds one still frame while reduced motion is on (rule 9). Hidden tabs get no
+// animation frames, so the loop pauses there by itself (rule 10).
+function play(canvas, scene, clock, stillAt, content) {
+  const ctx = canvas.getContext("2d", { alpha: false });
+  ctx.imageSmoothingEnabled = false;
+  let request = 0;
+
+  const loop = (now) => {
+    scene.render(ctx, clock(now));
+    request = requestAnimationFrame(loop);
+  };
+  const update = () => {
+    cancelAnimationFrame(request);
+    if (reducedMotion.matches) {
+      scene.render(ctx, stillAt);
+      content.show();
+    } else {
+      request = requestAnimationFrame(loop);
+    }
+  };
+
+  reducedMotion.addEventListener("change", update);
+  update();
+}
+
+// Scene time runs on the wall clock and is kept for the tab, so the scene carries on across page
+// loads (rule 8). startAt (seconds) restarts it at that point instead, as the delivery does.
+function createClock(startAt) {
+  let zeroAt = startAt === undefined ? readStoredNumber(CLOCK_KEY) : NaN;
+  if (!Number.isFinite(zeroAt)) {
+    zeroAt = Date.now() - (startAt ?? 0) * 1000;
+    storeNumber(CLOCK_KEY, zeroAt);
+  }
+  const offsetMs = Date.now() - zeroAt - performance.now();
+  return (now) => (now + offsetMs) / 1000;
+}
+
+// ---- Framing ----------------------------------------------------------------
+
+// The scene is scaled by a whole number of device pixels per scene pixel, so every pixel stays a
+// crisp square, and always covers the screen. It is anchored to the bottom, so any crop comes off
+// the sky and the snow, village and Astro stay whole.
+// Sideways, on wide screens Astro must stand clear of the content panel (rule 4), zooming in a step
+// or two if that is what it takes. Where that isn't possible (phones, where the panel is full
+// width) the source's framing applies: centre light crops and follow Astro on tall screens.
+function frame(canvas, scene, panel) {
+  const dpr = devicePixelRatio || 1;
+  const vw = canvas.parentElement.clientWidth * dpr;
+  const vh = canvas.parentElement.clientHeight * dpr;
+  const panelRight = panel.getBoundingClientRect().right * dpr;
+  const cover = Math.max(1, Math.ceil(Math.max(vw / scene.W, vh / scene.H) - 1e-6));
+
+  let scale = cover;
+  let left = null;
+  for (let s = cover; s <= cover + MAX_EXTRA_ZOOM && left === null; s++) {
+    scale = s;
+    left = leftKeepingAstroClear(scene, s, vw, panelRight);
+  }
+  if (left === null) {
+    scale = cover;
+    left = leftFollowingAstro(scene, cover, vw);
+  }
+
+  const width = scene.W * scale;
+  const height = scene.H * scale;
+  Object.assign(canvas.style, {
+    width: `${width / dpr}px`,
+    height: `${height / dpr}px`,
+    left: `${Math.round(left) / dpr}px`,
+    top: `${Math.round(vh - height) / dpr}px`,
+  });
+}
+
+// The left offset that keeps the screen covered and Astro between the panel and the right edge,
+// as centred as that allows; null if no offset does.
+function leftKeepingAstroClear(scene, s, vw, panelRight) {
+  const width = scene.W * s;
+  const min = Math.max(vw - width, panelRight - scene.astro.x0 * s);
+  const max = Math.min(0, vw - scene.astro.x1 * s);
+  return min > max ? null : clamp((vw - width) / 2, min, max);
+}
+
+function leftFollowingAstro(scene, s, vw) {
+  const width = scene.W * s;
+  const centre = (vw - width) / 2;
+  const onAstro = vw / 2 - scene.focusX * s;
+  const weight = clamp((width / vw - 1.35) / 0.5, 0, 1);
+  return clamp(centre + (onAstro - centre) * weight, vw - width, 0);
+}
+
+// ---- Helpers ----------------------------------------------------------------
+
+function loadImage(url) {
+  const image = new Image();
+  image.src = url;
+  return image.decode().then(() => image);
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+// sessionStorage can be unavailable (privacy modes); the scene then simply restarts on each page.
+function readStoredNumber(key) {
+  try { return Number(sessionStorage.getItem(key) ?? NaN); } catch { return NaN; }
+}
+
+function storeNumber(key, value) {
+  try { sessionStorage.setItem(key, String(value)); } catch { /* not kept for the tab */ }
+}

@@ -1,36 +1,48 @@
 *, *::before, *::after { box-sizing: border-box; }
 
-html { background: var(--surface); }
+html { background: var(--surface-sunken); }
 
 body {
   margin: 0;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: var(--surface);
   color: var(--ink);
   font: 400 15px/23px var(--font-sans);
 }
 
-h1, h2, p { margin: 0; }
-a { color: var(--frost); }
+h1, h2, h3, p { margin: 0; }
+a, .link { color: var(--ice); }
+/* A button that reads as a text link, for links that open something in place (the terms) */
+.link { padding: 0; border: 0; background: none; font: inherit; text-decoration: underline; cursor: pointer; }
+/* Text links warm to lantern amber, the primary button's colour, when pointed at or focused */
+a:not(.btn):hover, a:not(.btn):focus-visible, .link:hover, .link:focus-visible { color: var(--lantern-ink); }
 
 :focus-visible { outline: none; box-shadow: var(--focus-ring); }
 
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* Type styles */
-.hero-title { font: 600 44px/48px var(--font-display); letter-spacing: -0.01em; }
-.title { font: 600 30px/36px var(--font-display); letter-spacing: -0.005em; }
+.hero-title { font: 600 48px/52px var(--font-display); letter-spacing: -0.01em; }
+.title { font: 600 32px/38px var(--font-display); letter-spacing: -0.005em; }
 .subtitle { font: 500 22px/30px var(--font-display); }
 .heading { font: 700 19px/26px var(--font-sans); }
-.body-lg { font: 400 17px/26px var(--font-sans); }
+.body-lg { font: 400 17px/27px var(--font-sans); }
 .body { font: 400 15px/23px var(--font-sans); }
 .body-strong { font: 700 15px/23px var(--font-sans); }
 .caption { font: 600 13px/18px var(--font-sans); letter-spacing: 0.01em; }
 .overline { font: 700 11px/14px var(--font-sans); letter-spacing: 0.08em; color: var(--ink-muted); }
-.logo { font: 400 20px/26px var(--font-pixel); letter-spacing: 0.02em; color: var(--holly); text-decoration: none; }
+.logo { font: 400 20px/26px var(--font-pixel); letter-spacing: 0.02em; color: var(--cranberry); text-decoration: none; }
 .pixel-tag { font: 400 10px/16px var(--font-pixel); letter-spacing: 0.04em; }
 .muted { color: var(--ink-muted); }
-.error-text { color: var(--holly); }
+.error-text { color: var(--cranberry); }
 
 /* Icons: line SVGs tinted with the current text colour */
 .icon {
@@ -47,48 +59,71 @@ a { color: var(--frost); }
 .icon-snowflake { --icon: url("../assets/icons/snowflake.svg"); }
 .icon-sparkle { --icon: url("../assets/icons/sparkle.svg"); }
 
-/* Page frame */
-.site-header { padding: var(--space-6) var(--space-4) 0; text-align: center; }
-.site-main { flex: 1; width: 100%; max-width: 720px; margin: 0 auto; padding: var(--space-6) var(--space-4) var(--space-12); }
-.site-footer { display: flex; justify-content: center; align-items: center; gap: var(--space-2); padding: var(--space-6) var(--space-4); color: var(--ink-muted); }
+/* Stage (design/DESIGN.md §1–3): the diorama fills the screen, and the content sits on one panel
+   over the left half. The right half is always left to the scene and Astro. On desktop the page
+   never scrolls; long content scrolls inside the panel. */
+body {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: minmax(0, 1fr);
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
 
-.card {
+.diorama { position: fixed; inset: 0; overflow: hidden; background: var(--surface-sunken); }
+.diorama canvas { position: absolute; display: block; image-rendering: pixelated; }
+
+.panel {
+  position: relative;
+  grid-column: 1;
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-  padding: var(--space-6);
-  background: var(--surface-raised);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
-}
-.card-hero { border-radius: var(--radius-xl); align-items: center; text-align: center; padding: var(--space-8) var(--space-6); }
-.hero-text { display: flex; flex-direction: column; align-items: center; gap: var(--space-4); }
-
-.astro { display: block; width: 100%; max-width: 260px; height: auto; margin: 0 auto; }
-.page-head { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); text-align: center; }
-.page-head .astro { max-width: 160px; }
-.card > .astro { max-width: 160px; }
-
-/* Landing: the cut-out Astro is a whole dog, so he gets more room than the old close-up */
-.hero > .astro { max-width: 220px; }
-
-/* Greeting: Astro hops once on the landing page, squashing on take-off and landing */
-@keyframes astro-greet {
-  0%   { transform: translateY(0) scale(1, 1);            animation-timing-function: ease-out; }
-  14%  { transform: translateY(0) scale(1.06, 0.92);      animation-timing-function: cubic-bezier(0.2, 0.7, 0.3, 1); }
-  40%  { transform: translateY(-16%) scale(0.97, 1.05) rotate(-3deg); animation-timing-function: cubic-bezier(0.6, 0, 0.9, 0.5); }
-  62%  { transform: translateY(0) scale(1.08, 0.9);       animation-timing-function: ease-out; }
-  76%  { transform: translateY(-4%) scale(0.99, 1.02);    animation-timing-function: ease-in; }
-  88%  { transform: translateY(0) scale(1.03, 0.97);      animation-timing-function: ease-out; }
-  100% { transform: translateY(0) scale(1, 1); }
+  margin: var(--space-6);
+  padding: 40px var(--space-12);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+  background: color-mix(in srgb, var(--surface-raised) 60%, transparent);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  transition: opacity 600ms ease;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .hero > .astro {
-    transform-origin: 50% 100%;
-    animation: astro-greet 1.2s 0.25s 1 both;
+/* The scene in front: the content fades out and can't be reached until it comes back (§2, rules 5–7) */
+[data-diorama-front] .panel {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 500ms ease, visibility 0s 500ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel { transition: none; }
+}
+
+/* Narrow screens: one column, the panel goes full width and the page scrolls over the fixed scene */
+@media (max-width: 819px) {
+  body { display: block; height: auto; overflow: visible; }
+  .panel {
+    min-height: calc(100dvh - 2 * var(--space-4));
+    margin: var(--space-4);
+    padding: var(--space-6) var(--space-4);
+    overflow: visible;
   }
 }
+
+/* Page frame, inside the panel */
+.site-header { padding-bottom: var(--space-6); text-align: center; }
+.site-main { flex: 1 0 auto; display: flex; flex-direction: column; justify-content: center; width: 100%; max-width: 720px; margin: 0 auto; }
+.site-footer { display: flex; justify-content: center; align-items: center; gap: var(--space-2); padding-top: var(--space-6); color: var(--ink-muted); }
+
+.page { display: flex; flex-direction: column; gap: var(--space-4); }
+.page-hero { align-items: center; text-align: center; }
+.hero-text { display: flex; flex-direction: column; align-items: center; gap: var(--space-4); }
+.page-head { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); text-align: center; }
 
 /* Buttons */
 .btn {
@@ -102,10 +137,20 @@ a { color: var(--frost); }
   font: 700 15px/23px var(--font-sans);
   text-decoration: none;
   cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease, transform 80ms ease;
 }
-.btn-primary { background: var(--holly); color: var(--on-holly); box-shadow: var(--glow); }
-.btn-pine { background: var(--pine); color: var(--on-pine); }
-.btn-secondary { background: var(--surface-raised); color: var(--ink); border-color: var(--border-strong); }
+.btn:active:not(:disabled) { transform: translateY(1px); }
+/* A button that wraps a visually hidden input (Add picture) shows that input's keyboard focus */
+.btn:has(:focus-visible) { box-shadow: var(--focus-ring); }
+
+/* The one lantern action per screen */
+.btn-primary { background: var(--lantern); color: var(--on-lantern); box-shadow: var(--glow); }
+/* Everything else: a simple outline, so the lantern button stays the only filled action.
+   Hover and press tint with moonlight instead of a surface colour, so they show on any
+   background: the panel, a wish card or the share modal. */
+.btn-secondary { background: transparent; color: var(--ink); border-color: var(--border-strong); }
+.btn-secondary:not(:disabled):hover { background: color-mix(in srgb, var(--ink) 8%, transparent); border-color: var(--ink-muted); }
+.btn-secondary:not(:disabled):active { background: color-mix(in srgb, var(--ink) 16%, transparent); }
 .btn-quiet { background: transparent; color: var(--ink-muted); }
 .btn-small { padding: var(--space-2) var(--space-4); }
 .btn:disabled { opacity: var(--opacity-disabled); cursor: not-allowed; }
@@ -116,47 +161,50 @@ a { color: var(--frost); }
 .field {
   width: 100%;
   padding: var(--space-3) var(--space-4);
-  background: var(--surface-raised);
+  background: var(--surface-sunken);
   color: var(--ink);
   border: 2px solid var(--border-strong);
   border-radius: var(--radius-md);
   font: 400 15px/23px var(--font-sans);
 }
-.field-paper { background: var(--surface-sunken); resize: vertical; }
+textarea.field { resize: vertical; }
 .field::placeholder { color: var(--ink-muted); }
 
 .wishes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-3); }
-.wish { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4); background: var(--surface-sunken); border-radius: var(--radius-md); }
+.wish { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4); background: var(--surface-raised); border-radius: var(--radius-md); }
 .wish-top { display: flex; gap: var(--space-2); align-items: center; }
 .wish-images { display: flex; flex-wrap: wrap; gap: var(--space-2); }
-.wish-images .is-filled { background: var(--pine-soft); color: var(--pine); border-color: var(--pine); }
+.wish-images .is-filled { background: var(--aurora-soft); color: var(--aurora); border-color: var(--aurora); }
+.wish-images .is-filled:hover { background: color-mix(in srgb, var(--aurora) 16%, var(--aurora-soft)); border-color: var(--aurora); }
 
 .actions { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); text-align: center; }
 
 .banner { padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); margin-bottom: var(--space-4); }
-.banner-error { background: var(--holly-soft); color: var(--holly); }
+.banner-error { background: var(--cranberry-soft); color: var(--cranberry); }
 .banner-error.validation-summary-valid { display: none; }
 .banner-error ul { margin: 0; padding-left: var(--space-4); }
 
 .badge { display: inline-block; padding: var(--space-1) var(--space-2); border-radius: var(--radius-sm); }
-.badge-pine { background: var(--pine-soft); color: var(--pine); }
+.badge-aurora { background: var(--aurora-soft); color: var(--aurora); }
 
-/* The letter */
+/* The letter: warm paper, the brightest thing on the screen */
 .paper {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
   padding: var(--space-6);
-  background: var(--surface-sunken);
+  background: var(--paper);
+  color: var(--on-paper);
   border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
   overflow-wrap: anywhere;
 }
 .wish-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-4); }
-.wish-read { display: flex; flex-direction: column; gap: var(--space-2); padding-bottom: var(--space-4); border-bottom: 1px solid var(--line); }
+.wish-read { display: flex; flex-direction: column; gap: var(--space-2); padding-bottom: var(--space-4); border-bottom: 1px solid var(--paper-line); }
 .wish-read:last-child { border-bottom: 0; }
 .wish-pictures { display: flex; flex-wrap: wrap; gap: var(--space-2); }
-.wish-pictures img { display: block; width: 120px; height: 120px; object-fit: cover; border-radius: var(--radius-md); background: var(--surface-raised); }
-.sign-off { text-align: right; color: var(--gold); }
+.wish-pictures img { display: block; width: 120px; height: 120px; object-fit: cover; border-radius: var(--radius-md); background: var(--paper-line); }
+.sign-off { text-align: right; }
 
 /* Share modal */
 .modal {
@@ -168,12 +216,31 @@ a { color: var(--frost); }
   color: var(--ink);
   box-shadow: var(--shadow-lg);
 }
-.modal::backdrop { background: #2c201699; }
+.modal::backdrop { background: color-mix(in srgb, var(--surface-sunken) 70%, transparent); }
 .modal-body { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-6); }
 .modal-actions { display: flex; flex-direction: column; gap: var(--space-2); }
 
+/* Terms modal: centred; the title and Close stay put while the text between them scrolls */
+.modal-terms[open] { display: flex; }
+.modal-terms .modal-body { flex: 1; min-height: 0; }
+.modal-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+.modal-scroll .heading:not(:first-child) { margin-top: var(--space-3); }
+
+/* On narrow screens it covers two thirds of the screen's height, centred */
+@media (max-width: 819px) {
+  .modal-terms { height: calc(100dvh * 2 / 3); }
+}
+
 @media (max-width: 480px) {
   .hero-title { font-size: 34px; line-height: 40px; }
-  .card { padding: var(--space-4); }
   .paper { padding: var(--space-4); }
 }

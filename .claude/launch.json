@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "astroclaus",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "src/AstroClaus.API", "--launch-profile", "http"],
+      "port": 5159
+    }
+  ]
+}

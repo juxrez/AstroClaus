@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Astro Santa — Landing</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&amp;family=Nunito:wght@400;600;700&amp;family=Press+Start+2P&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#216197}a:hover{color:#174a75}
+.diorama{background-color:#f5ead4;background-image:repeating-linear-gradient(135deg,rgba(160,137,85,0.13) 0 2px,transparent 2px 16px)}
+a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible{outline:none;box-shadow:0 0 0 2px #fdf6ea,0 0 0 4px #216197 !important}
+@media (max-width: 820px){
+.layout{grid-template-columns:minmax(0,1fr) !important}
+.content{grid-column:auto !important;padding:12px !important}
+.panel{padding:24px !important}
+.steps{grid-template-columns:minmax(0,1fr) !important}
+.stage{min-height:380px;padding-bottom:40px !important}
+}
+</style>
+</helmet>
+<div class="screen" style="position: relative; width: 100%; min-height: 900px; overflow: hidden; font-family: 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif; color: #2c2016; background: #f5ead4">
+
+  <div class="diorama" aria-hidden="true" style="position: absolute; inset: 0">
+    <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" style="display: block"><line x1="0" y1="0" x2="100" y2="100" stroke="#a08955" stroke-opacity="0.6" stroke-width="1.5" vector-effect="non-scaling-stroke"></line><line x1="100" y1="0" x2="0" y2="100" stroke="#a08955" stroke-opacity="0.6" stroke-width="1.5" vector-effect="non-scaling-stroke"></line></svg>
+  </div>
+
+  <div class="layout" style="position: relative; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); min-height: 900px">
+
+    <main class="content" style="grid-column: span 2; display: flex; padding: 24px; box-sizing: border-box; min-width: 0">
+      <div class="panel" style="flex: 1; display: flex; flex-direction: column; padding: 40px 48px; box-sizing: border-box; min-width: 0; border-radius: 28px; background: {{panelBg}}; backdrop-filter: {{panelBlur}}; -webkit-backdrop-filter: {{panelBlur}}; border: 1px solid rgba(255,253,248,0.6); box-shadow: 0 8px 24px -4px #2c201626, 0 20px 48px -8px #2c20162e">
+
+        <header style="display: flex; align-items: center; justify-content: space-between; gap: 16px"><span style="font-family: &quot;Press Start 2P&quot;, &quot;Courier New&quot;, monospace; font-size: 20px; line-height: 26px; letter-spacing: 0.02em; color: rgb(44, 32, 22)">ASTROCLAUS</span>        </header>
+
+        <section style="margin-top: auto; margin-bottom: auto; display: flex; flex-direction: column; gap: 32px; max-width: 680px">
+          <div style="display: flex; flex-direction: column; gap: 16px">
+            <span style="font-size: 11px; line-height: 14px; font-weight: 700; letter-spacing: 0.08em; color: #756041">TO: THE NORTH POLE</span>
+            <h1 style="margin: 0; font-family: 'Fredoka', 'Trebuchet MS', system-ui, sans-serif; font-size: 44px; line-height: 48px; font-weight: 600; letter-spacing: -0.01em; color: #2c2016">Write a letter to Santa</h1>
+            <p style="margin: 0; font-size: 17px; line-height: 26px; color: #2c2016">Tell Santa what's on your mind this year. When you send it, you'll get one link to share with the people you love.</p>
+            
+          </div>
+
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 24px">
+            <a href="2-create-letter.html" style="display: inline-flex; align-items: center; gap: 10px; height: 56px; padding: 0 28px; border-radius: 12px; background: #c01f2f; color: #fff8ef; font-size: 17px; line-height: 26px; font-weight: 700; text-decoration: none; box-shadow: 0 0 0 1px #c01f2f33, 0 6px 20px -4px #c01f2f55">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"></path><path d="M13.5 6.5l4 4"></path></svg>
+              Write my letter
+            </a>
+            <a href="3-view-letter.html" style="font-size: 15px; line-height: 23px; font-weight: 700; color: #216197">See an example letter</a>
+          </div>
+
+          <ol class="steps" style="list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px">
+            <li style="display: flex; flex-direction: column; gap: 8px; padding: 16px; border-radius: 20px; background: #fdf6ea; border: 1px solid #e3d4b8">
+              <span style="width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center; border-radius: 9999px; background: #f6e9c9; color: #875b0e">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"></path><path d="M13.5 6.5l4 4"></path></svg>
+              </span>
+              <span style="font-size: 15px; line-height: 23px; font-weight: 700">1 · Write it</span>
+              <span style="font-size: 13px; line-height: 18px; font-weight: 600; color: #756041">Your wishes, in your own words.</span>
+            </li>
+            <li style="display: flex; flex-direction: column; gap: 8px; padding: 16px; border-radius: 20px; background: #fdf6ea; border: 1px solid #e3d4b8">
+              <span style="width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center; border-radius: 9999px; background: #f6e9c9; color: #875b0e">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M3 7l9 6 9-6"></path></svg>
+              </span>
+              <span style="font-size: 15px; line-height: 23px; font-weight: 700">2 · Send it</span>
+              <span style="font-size: 13px; line-height: 18px; font-weight: 600; color: #756041">Astro carries it to the North Pole.</span>
+            </li>
+            <li style="display: flex; flex-direction: column; gap: 8px; padding: 16px; border-radius: 20px; background: #fdf6ea; border: 1px solid #e3d4b8">
+              <span style="width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center; border-radius: 9999px; background: #f6e9c9; color: #875b0e">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1"></path><path d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1"></path></svg>
+              </span>
+              <span style="font-size: 15px; line-height: 23px; font-weight: 700">3 · Share it</span>
+              <span style="font-size: 13px; line-height: 18px; font-weight: 600; color: #756041">One link for family and friends.</span>
+            </li>
+          </ol>
+        </section>
+
+        <footer style="display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap">
+          <span style="font-size: 13px; line-height: 18px; font-weight: 600; color: #756041">Letters are kept for 90 days.</span>
+        </footer>
+      </div>
+    </main>
+
+    <div class="stage" aria-hidden="true" style="min-width: 0"></div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"panelOpacity":{"editor":"range","default":0.7,"min":0.4,"max":1,"step":0.05,"section":"Panel"},"panelBlur":{"editor":"range","default":8,"min":0,"max":24,"step":1,"unit":"px","section":"Panel"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const a = this.props.panelOpacity ?? 0.7;
+    const b = this.props.panelBlur ?? 8;
+    return { panelBg: 'rgba(255,253,248,' + a + ')', panelBlur: 'blur(' + b + 'px)' };
+  }
+}
+</script>
+</body>
+</html>
