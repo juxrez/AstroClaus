@@ -19,7 +19,7 @@ Styling uses the **Astro Santa design system** (https://claude.ai/artifact/CYCmv
 ## 1. The stage: two halves
 
 - The screen is split into **two equal halves**. (The wireframes in `screens/` still show the earlier three-column split; the halves win.) Thirds lines across the height still guide vertical placement.
-- **The left half is content.** **The right half is always empty** on every screen: no buttons, labels, badges, toasts or overlays ever go there. The one exception is a popup (share, terms): popups are centred on the whole screen.
+- **The left half is content.** **The right half is always empty** on every screen: no buttons, labels, badges, toasts or overlays ever go there. The one exception is a popup (share, terms, picture): popups are centred on the whole screen.
 - **The diorama is full-screen** and sits behind everything (`position: fixed; inset: 0`, lowest layer). Astro, the main character, is *part of the diorama* and stands in the right half. The UI never draws Astro. See §2 for how it behaves.
   - The wireframe shows the diorama as a hatched area with a corner-to-corner X — that is only its placeholder.
 - Content sits on one **panel** filling the left half, inset `--space-6` (24px) from the top, bottom and left edges and 24px short of the middle line.
@@ -67,7 +67,7 @@ Built in `wwwroot/js/diorama/`: `scene.js` draws the scene (the source's drawing
 ### Create letter
 - Panel = fixed **header** (Back link + wordmark) / **scrolling middle** / fixed **action bar**.
 - Middle, in order: title + subtitle, **Your name**, **Your message** (lined textarea, character counter), **Your wishes**.
-- **Wishes:** a numbered list of cards. Each card: label `Wish N`, text field, remove-wish icon button, then its images.
+- **Wishes:** a numbered list of cards. Each card: label `Wish N`, text field, remove-wish icon button, an optional link field ("Link (optional): https://…"), then its images.
   - Up to **2 images per wish**. Thumbnails 96×96 with a remove button on the top-right corner (visible circle 28px, hit area 44px).
   - While a wish has fewer than 2 images, show a dashed 96×96 **Add image** tile after the thumbnails; hide it at 2.
   - Caption beside the tiles: `N of 2 images`; on an empty wish also the allowed file types and max size.
@@ -80,6 +80,8 @@ Built in `wwwroot/js/diorama/`: `scene.js` draws the scene (the source's drawing
 - Status row: `DELIVERED` pixel badge (`aurora` on `aurora-soft`, check icon) + caption `Sent DATE · Kept until DATE`.
 - Right after sending, the whole panel stays hidden until Astro has run off with the letter, then fades in (§2, rules 6–7).
 - **Letter paper** (`--paper` with `--on-paper` text, `--paper-muted` for the address lines, radius 20px) fills the remaining height and **scrolls inside itself**: `TO: THE NORTH POLE` / `FROM: name`, "Dear Santa,", the message, **My wishes**, then "Love, name".
+  - Clicking a picture opens it in a popup that shows only the picture, as large as fits (never cropped or stretched; on narrow screens at most two thirds of the screen's height), centred. A strip under it, exactly as wide as the picture, shows the wish's name and **Find it here** if the wish has a link. No buttons: Escape or a click outside closes it. One popup is filled with whichever picture was clicked. Ctrl/Cmd-click, or no page script, opens the picture in a new tab.
+  - A wish with a link shows **Find it here** under its text (`paper-muted`, `on-paper` on hover), opening in a new tab. Only `http(s)` links are ever accepted or shown.
   - Each wish: number badge (`lantern-ink` on `lantern-soft`), wish text in bold body-lg, its images at 140×140, read-only. A wish with no images is a single line.
 - **Share your letter:** heading, one line of help, read-only link field + a secondary (outline) **Copy link** button. This replaces the share modal on desktop unless there's a reason to keep it.
 - Footer: `ice` link **Write your own letter** → Create. No `lantern` button on this screen.
@@ -102,6 +104,7 @@ All numbers in page text must come from `Features/Letters/LetterLimits.cs`, neve
 | Name length | `FromMax` (30) |
 | Message `0 / [MAX] characters` | `MessageMax` (150) |
 | Wish text length | `WishNameMax` (60) |
+| Wish link length | `WishLinkMax` (500) |
 | `N of [MAX] wishes` | `MaxWishes` (10) |
 | `up to [MAX SIZE]` | `MaxImageKb` (500 KB) |
 | `[FILE TYPES]` | the kinds `ImageKind.Detect` accepts: JPG, PNG, WebP |
@@ -113,4 +116,3 @@ All numbers in page text must come from `Features/Letters/LetterLimits.cs`, neve
 ## 7. Open points for the spec
 - The design system has no secondary button yet. The site uses a simple outline (`.btn-secondary`: transparent, `ink` text, 2px `border-strong` edge); add it to the design system if it stays.
 - Should the share modal (`_ShareModal`) stay for mobile, or be replaced everywhere by the inline share section?
-- Tapping an image in View letter to see it larger isn't designed yet.

@@ -32,7 +32,7 @@
             <ol class="wishes" id="wishes">
                 @for (var i = 0; i < Model.Form.Wishes.Count; i++)
                 {
-                    <partial name="_WishRow" model="@((i.ToString(), Model.Form.Wishes[i].Name))" />
+                    <partial name="_WishRow" model="@((i.ToString(), Model.Form.Wishes[i]))" />
                 }
             </ol>
 
@@ -41,7 +41,7 @@
         </div>
 
         <template id="wish-template">
-            <partial name="_WishRow" model="@(("__i__", ""))" />
+            <partial name="_WishRow" model="@(("__i__", new WishForm()))" />
         </template>
 
         <div class="actions">

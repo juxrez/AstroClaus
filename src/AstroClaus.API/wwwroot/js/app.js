@@ -19,7 +19,7 @@ function forgetJustSent() {
   history.replaceState(history.state, "", url);
 }
 
-// ---- Modals (share, terms) ----------------------------------------------------
+// ---- Modals (share, terms, picture) ------------------------------------------
 // A button with data-open-modal="<id>" opens <dialog class="modal" id="<id>">. Its
 // [data-close-modal] buttons, Escape (built in) or a click on the backdrop close it.
 function initModals() {
@@ -30,6 +30,40 @@ function initModals() {
     $$("[data-close-modal]", modal).forEach((button) => button.addEventListener("click", () => modal.close()));
     modal.addEventListener("click", (e) => { if (e.target === modal) modal.close(); });
   });
+}
+
+// ---- Picture modal (view page) ----------------------------------------------
+// One modal for every picture on the letter. Clicking a picture fills it with that picture,
+// its wish's name and the wish's link. Ctrl/Cmd/Shift-click still opens the picture in a new
+// tab, and without this script every click does.
+function initPictureModal() {
+  const modal = $("#picture-modal");
+  if (!modal) return;
+
+  const title = $("[data-picture-title]", modal);
+  const image = $("[data-picture-image]", modal);
+  const findIt = $("[data-picture-link]", modal);
+
+  $$("[data-picture]").forEach((picture) =>
+    picture.addEventListener("click", async (e) => {
+      if (e.ctrlKey || e.metaKey || e.shiftKey) return;
+      e.preventDefault();
+
+      const wish = picture.closest("[data-letter-wish]");
+      const wishLink = $("[data-wish-link]", wish);
+      title.textContent = $("[data-wish-name]", wish).textContent;
+      findIt.hidden = !wishLink;
+      if (wishLink) findIt.href = wishLink.href;
+
+      // The modal is sized from the picture's shape, so know it before opening. The thumbnail
+      // already loaded this same file, so this is quick.
+      image.src = picture.href;
+      image.alt = $("img", picture).alt;
+      await image.decode().catch(() => {});
+      image.style.setProperty("--picture-ratio", image.naturalWidth / image.naturalHeight || 1);
+
+      modal.showModal();
+    }));
 }
 
 // ---- Share modal (view page) ----------------------------------------------
@@ -138,5 +172,6 @@ function initCreateForm(onSend) {
 const diorama = startDiorama();
 forgetJustSent();
 initModals();
+initPictureModal();
 initShareModal(diorama.contentShown);
 initCreateForm(diorama.bringToFront);

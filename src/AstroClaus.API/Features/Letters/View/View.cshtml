@@ -26,14 +26,19 @@
             <ul class="wish-list">
                 @foreach (var wish in letter.Wishes)
                 {
-                    <li class="wish-read" data-motion="wish-item">
-                        <p class="body-strong">@wish.Name</p>
+                    <li class="wish-read" data-motion="wish-item" data-letter-wish>
+                        <p class="body-strong" data-wish-name>@wish.Name</p>
+                        @if (Wish.IsWebLink(wish.Link))
+                        {
+                            <a class="wish-link caption" href="@wish.Link" target="_blank" rel="noopener noreferrer nofollow ugc" data-wish-link>Find it here<span class="visually-hidden">: @wish.Name</span></a>
+                        }
                         @if (wish.Images.Count > 0)
                         {
                             <div class="wish-pictures">
                                 @foreach (var image in wish.Images)
                                 {
-                                    <a href="/letter/@letter.Id/images/@image" target="_blank" rel="noopener">
+                                    @* Opens in the picture modal; without the page script, in a new tab *@
+                                    <a href="/letter/@letter.Id/images/@image" target="_blank" rel="noopener" data-picture>
                                         <img src="/letter/@letter.Id/images/@image" alt="Picture for @wish.Name" loading="lazy" />
                                     </a>
                                 }
@@ -56,6 +61,18 @@
     </section>
 
     <partial name="_ShareModal" model="Model.ShareUrl" />
+
+    @* One modal for every picture on the letter; the page script fills it with the picture clicked.
+       No buttons: Escape or a click outside closes it. *@
+    <dialog class="modal modal-picture" id="picture-modal" aria-labelledby="picture-title">
+        <figure>
+            <img data-picture-image alt="" />
+            <figcaption>
+                <span class="body-strong" id="picture-title" data-picture-title></span>
+                <a class="caption" target="_blank" rel="noopener noreferrer nofollow ugc" data-picture-link hidden>Find it here</a>
+            </figcaption>
+        </figure>
+    </dialog>
 }
 else
 {

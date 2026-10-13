@@ -20,34 +20,39 @@ public sealed class BlobLetterStore(BlobServiceClient service) : ILetterStore
 
     public async Task SaveAsync(Letter letter, IReadOnlyList<StoredImage> images, CancellationToken ct)
     {
-        var container = service.GetBlobContainerClient(ContainerName);
-
-        var onlyIfNew = new BlobRequestConditions { IfNoneMatch = ETag.All };
-
-        foreach (var image in images)
+        try
         {
-            await GetBlobPath(container, letter.Id, image.FileName).UploadAsync(
-                BinaryData.FromBytes(image.Bytes),
+            var container = service.GetBlobContainerClient(ContainerName);
+
+            //upload images first
+            foreach (var image in images)
+            {
+                await GetBlobPath(container, letter.Id, image.FileName).UploadAsync(
+                    BinaryData.FromBytes(image.Bytes),
+                    new BlobUploadOptions
+                    {
+                        HttpHeaders = new BlobHttpHeaders
+                        {
+                            ContentType = image.ContentType
+                        }
+                    },
+                    ct);
+            }
+
+            // save letter last, so a letter only exists once all its images are stored.
+            await GetBlobPath(container, letter.Id, LetterFileName).UploadAsync(
+                BinaryData.FromObjectAsJson(letter, Json),
                 new BlobUploadOptions
                 {
-                    Conditions = onlyIfNew,
-                    HttpHeaders = new BlobHttpHeaders 
-                    {
-                        ContentType = image.ContentType 
-                    }
+                    HttpHeaders = new BlobHttpHeaders { ContentType = "application/json" }
                 },
                 ct);
         }
+        catch (Exception ex)
+        {
 
-        // Written last, so a letter only exists once all its images are stored.
-        await GetBlobPath(container, letter.Id, LetterFileName).UploadAsync(
-            BinaryData.FromObjectAsJson(letter, Json),
-            new BlobUploadOptions
-            {
-                Conditions = onlyIfNew,
-                HttpHeaders = new BlobHttpHeaders { ContentType = "application/json" }
-            },
-            ct);
+            throw;
+        }
     }
 
     public async Task<Letter?> GetAsync(string id, CancellationToken ct)

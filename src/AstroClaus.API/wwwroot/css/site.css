@@ -169,6 +169,8 @@ body {
 }
 textarea.field { resize: vertical; }
 .field::placeholder { color: var(--ink-muted); }
+/* A secondary field, such as a wish's optional link */
+.field-small { padding: var(--space-2) var(--space-3); font: 400 13px/18px var(--font-sans); }
 
 .wishes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-3); }
 .wish { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4); background: var(--surface-raised); border-radius: var(--radius-md); }
@@ -202,11 +204,14 @@ textarea.field { resize: vertical; }
 .wish-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-4); }
 .wish-read { display: flex; flex-direction: column; gap: var(--space-2); padding-bottom: var(--space-4); border-bottom: 1px solid var(--paper-line); }
 .wish-read:last-child { border-bottom: 0; }
+/* Links on the paper use its own inks: ice and lantern amber are too light on paper */
+.paper .wish-link { align-self: flex-start; color: var(--paper-muted); }
+.paper .wish-link:hover, .paper .wish-link:focus-visible { color: var(--on-paper); }
 .wish-pictures { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .wish-pictures img { display: block; width: 120px; height: 120px; object-fit: cover; border-radius: var(--radius-md); background: var(--paper-line); }
 .sign-off { text-align: right; }
 
-/* Share modal */
+/* Modals (share, terms, picture): centred on the whole screen */
 .modal {
   width: min(480px, calc(100% - var(--space-8)));
   padding: 0;
@@ -220,10 +225,11 @@ textarea.field { resize: vertical; }
 .modal-body { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-6); }
 .modal-actions { display: flex; flex-direction: column; gap: var(--space-2); }
 
-/* Terms modal: centred; the title and Close stay put while the text between them scrolls */
+/* Terms: the title and Close stay put and the text between them scrolls.
+   On narrow screens it covers two thirds of the screen's height, centred. */
 .modal-terms[open] { display: flex; }
 .modal-terms .modal-body { flex: 1; min-height: 0; }
-.modal-scroll {
+.modal-middle {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -233,11 +239,41 @@ textarea.field { resize: vertical; }
   scrollbar-width: thin;
   scrollbar-color: var(--border-strong) transparent;
 }
-.modal-scroll .heading:not(:first-child) { margin-top: var(--space-3); }
+.modal-middle .heading:not(:first-child) { margin-top: var(--space-3); }
 
-/* On narrow screens it covers two thirds of the screen's height, centred */
+/* Picture: only the picture, as large as fits (never cropped or stretched), with its wish's name
+   and link in a strip under it. The modal is exactly as wide as the picture. --picture-ratio
+   (width / height) is set by the page script from the picture itself. */
+.modal-picture {
+  --caption-height: 52px;
+  --room-width: min(960px, 100vw - 2 * var(--space-6));
+  --room-height: calc(100dvh - 2 * var(--space-12) - var(--caption-height));
+  width: fit-content;
+  max-width: none;
+  max-height: none;
+  overflow: hidden;
+}
+.modal-picture figure { margin: 0; }
+.modal-picture img {
+  display: block;
+  width: min(var(--room-width), var(--room-height) * var(--picture-ratio, 1));
+  aspect-ratio: var(--picture-ratio, 1);
+  object-fit: contain;
+}
+.modal-picture figcaption {
+  contain: inline-size; /* the strip takes the picture's width; a long name wraps instead of widening it */
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-height: var(--caption-height);
+  padding: var(--space-3) var(--space-4);
+}
+.modal-picture figcaption a { flex-shrink: 0; }
+
 @media (max-width: 819px) {
   .modal-terms { height: calc(100dvh * 2 / 3); }
+  .modal-picture { --room-height: calc(100dvh * 2 / 3 - var(--caption-height)); }
 }
 
 @media (max-width: 480px) {

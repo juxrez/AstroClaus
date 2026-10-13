@@ -1,12 +1,16 @@
-@* Model: (index, name). The index is "__i__" in the template the page script clones. *@
-@model (string Index, string Name)
+@* Model: (index, wish). The index is "__i__" in the template the page script clones. *@
+@using AstroClaus.API.Features.Letters
+@model (string Index, AstroClaus.API.Features.Letters.Create.WishForm Wish)
 <li class="wish" data-wish data-motion="wish-item">
     <div class="wish-top">
-        <input class="field" type="text" name="Form.Wishes[@Model.Index].Name" value="@Model.Name"
-               maxlength="@Letters.LetterLimits.WishNameMax" placeholder="A wish, like &quot;a red bike&quot;"
+        <input class="field" type="text" name="Form.Wishes[@Model.Index].Name" value="@Model.Wish.Name"
+               maxlength="@LetterLimits.WishNameMax" placeholder="A wish, like &quot;a red bike&quot;"
                aria-label="Wish" />
         <button type="button" class="btn btn-quiet" data-remove-wish>Remove</button>
     </div>
+    <input class="field field-small" type="url" name="Form.Wishes[@Model.Index].Link" value="@Model.Wish.Link"
+           maxlength="@LetterLimits.WishLinkMax" placeholder="Link (optional): https://…"
+           aria-label="Where to find it (optional link)" autocomplete="off" />
     <div class="wish-images">
         <label class="btn btn-secondary btn-small">
             Add picture

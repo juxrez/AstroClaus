@@ -31,9 +31,15 @@ public class CreateModel(ILetterStore store) : PageModel
         return Redirect($"/letter/{letter.Id}?sent=true");
     }
 
-    /// <summary>Checks one wish's pictures, adds the good ones to <paramref name="images"/> and returns the wish.</summary>
+    /// <summary>Checks one wish's link and pictures, adds the good pictures to <paramref name="images"/> and returns the wish.</summary>
     private async Task<Wish> ReadWishAsync(WishForm wish, int index, List<StoredImage> images, CancellationToken ct)
     {
+        var link = string.IsNullOrWhiteSpace(wish.Link) ? null : wish.Link.Trim();
+        if (link is not null && !Wish.IsWebLink(link))
+        {
+            ModelState.AddModelError("", $"The link for \"{wish.Name}\" isn't a web link. Copy it from your browser's address bar.");
+        }
+
         var names = new List<string>();
         var uploads = new[] { wish.Image1, wish.Image2 }.OfType<IFormFile>().Where(f => f.Length > 0);
 
@@ -62,6 +68,6 @@ public class CreateModel(ILetterStore store) : PageModel
             images.Add(new StoredImage(fileName, kind.ContentType, bytes));
         }
 
-        return new Wish(wish.Name?.Trim() ?? "", names);
+        return new Wish(wish.Name?.Trim() ?? "", names, link);
     }
 }
