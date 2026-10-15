@@ -1,9 +1,10 @@
-@page "/error"
+@page "/error/{code:int?}"
 @model AstroClaus.API.Features.Error.ErrorModel
 @{
     // Its own small page instead of _Layout: no diorama and no scripts, so as little as possible
     // can fail while showing it, and the only Astro on screen is the sad one.
     Layout = null;
+    var title = Model.IsNotFound ? "Lost in the snow" : "Snowed in!";
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -11,7 +12,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex" />
-    <title>Snowed in · Astro Claus</title>
+    <title>@title · Astro Claus</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet" />
@@ -22,9 +23,17 @@
     <main class="error-card">
         <img class="error-astro" src="~/assets/astro-sad.png" asp-append-version="true"
              alt="Astro looking sad, with snow piled on his head" width="32" height="32" />
-        <h1 class="title">Snowed in!</h1>
-        <p class="body-lg">We're sorry, heavy snow is causing issues in our system. Astro is already digging us out.</p>
-        <p class="body muted">Please try again in a little while.</p>
+        <h1 class="title">@title</h1>
+        @if (Model.IsNotFound)
+        {
+            <p class="body-lg">Oops, we couldn't find anything here.</p>
+            <p class="body muted">The snow may have covered it up.</p>
+        }
+        else
+        {
+            <p class="body-lg">We're sorry, heavy snow is causing issues in our system. Astro is already digging us out.</p>
+            <p class="body muted">Please try again in a little while.</p>
+        }
         <a class="btn btn-primary" href="/">Back home</a>
     </main>
 </body>
