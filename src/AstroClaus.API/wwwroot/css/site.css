@@ -276,6 +276,31 @@ textarea.field { resize: vertical; }
   .modal-picture { --room-height: calc(100dvh * 2 / 3 - var(--caption-height)); }
 }
 
+/* Error page: its own small page on the night sky, no diorama (Features/Error) */
+body.error-page {
+  display: grid;
+  place-items: center;
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 100dvh;
+  height: auto;
+  overflow: auto;
+  padding: var(--space-4);
+  background: var(--surface);
+}
+.error-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  width: min(480px, 100%);
+  padding: var(--space-8) var(--space-6);
+  text-align: center;
+  background: var(--surface-raised);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+}
+.error-astro { width: 192px; height: 192px; image-rendering: pixelated; }
+
 @media (max-width: 480px) {
   .hero-title { font-size: 34px; line-height: 40px; }
   .paper { padding: var(--space-4); }
