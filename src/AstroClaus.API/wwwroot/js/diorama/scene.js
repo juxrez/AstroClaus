@@ -837,7 +837,161 @@ export function createScene(env) {
     s = (t - D.hop0 - 0.35) / 0.3; if (s >= 0 && s < 1) h = Math.max(h, Math.round(3 * Math.sin(Math.PI * s)));
     return h;
   }
-  function drawActor(c, t) {
+  /* ---------------- the play routine (variant 'play'): the letter page for readers ----------------
+     Runs on its own clock r (seconds since the letter opened, looping every PL.T), separate from the
+     scene's 24 s loop: he barks hello, sits while snow settles on him, shakes it off, snaps at falling
+     flakes, sniffs his way off to the right, then walks back in and turns to face us again. */
+  var PLAY = env.variant === "play";
+  var PL = { T: 26, sit: 4.0, stand: 8.0, shake0: 8.4, shake1: 10.8, play: 12.0, sniff: 15.0, walk: 15.4, back: 22.0, home: 25.0, v: 22 };
+  PL.gone = PL.walk + (W + 2 - AX) / PL.v;                                  /* when he has sniffed his way off screen */
+  var BARKS = [0.3, 0.85, 2.0, 2.55];                                        /* two double "woof"s */
+  var HOPS = [{ t: 12.25, h: 5 }, { t: 13.35, h: 6 }, { t: 14.3, h: 4 }];    /* snaps at falling flakes */
+  var HOP_LEN = 0.5;
+  var HEAD = { x: 13, y: 0, w: 19, h: 19 };                                 /* head + antlers, so they can nod and sniff */
+  var MOUTH = "#2a1510", TONGUE = mix(HOLLY, INK, 0.25), PRINT = mix(SUNK, SURF, 0.4), SNOW_SHADE = mix(FROST, SURF, 0.35);
+  var WALKF = [[2, -2, -2, 2], [0, 0, 0, 0], [-2, 2, 2, -2], [0, 0, 0, 0]];
+  /* where snow settles while he sits: [x, y, on the head?] in sprite pixels */
+  var SNOWPTS = [[20, 5, 1], [21, 4, 1], [22, 5, 1], [15, 8, 1], [6, 15, 0], [9, 15, 0], [12, 15, 0], [21, 5, 1], [7, 15, 0], [16, 8, 1], [10, 15, 0], [5, 16, 0]];
+  var PLAYC = { cv: mk(48, 44) };
+  PLAYC.c = PLAYC.cv.getContext("2d"); PLAYC.c.imageSmoothingEnabled = false;
+  (function () {
+    A.head = mk(HEAD.w, HEAD.h); A.head.getContext("2d").drawImage(A.noLegs, HEAD.x, HEAD.y, HEAD.w, HEAD.h, 0, 0, HEAD.w, HEAD.h);
+    A.body = mk(32, 32); var bc = A.body.getContext("2d"); bc.drawImage(A.noLegs, 0, 0); bc.clearRect(HEAD.x, HEAD.y, HEAD.w, HEAD.h);
+  })();
+
+  function inWindow(r, a, len) { return r >= a && r < a + len; }
+  function hopAt(r) {
+    for (var i = 0; i < HOPS.length; i++) { var s = (r - HOPS[i].t) / HOP_LEN; if (s >= 0 && s < 1) return { h: Math.round(HOPS[i].h * Math.sin(Math.PI * s)), s: s }; }
+    return null;
+  }
+  function walkX(r) { return r < PL.back ? AX + PL.v * (r - PL.walk) : W + 2 - (W + 2 - AX) * (r - PL.back) / (PL.home - PL.back); }
+
+  /* the pose at routine time r; null while he is off screen */
+  function playPose(r) {
+    var p = { x: AX, hop: 0, sit: 0, k: [0, 0, 0, 0], hx: 0, hy: 0, dx: 0, mouth: false, blink: false, snow: 0, wag: 0.25, flip: false };
+    var i;
+    if (r < PL.sit) {
+      for (i = 0; i < BARKS.length; i++) if (inWindow(r, BARKS[i], 0.22)) p.mouth = true;
+      p.hy = p.mouth ? -1 : 0; p.wag = 0.12;
+    } else if (r < PL.stand) {
+      p.sit = clamp((r - PL.sit) / 0.4, 0, 1); p.hy = -Math.round(p.sit);
+      p.snow = clamp((r - PL.sit - 0.6) / 3.0, 0, 1); p.wag = 0.45;
+      p.blink = inWindow(r, 5.6, 0.14) || inWindow(r, 7.3, 0.14);
+    } else if (r < PL.play) {
+      p.sit = 1 - clamp((r - PL.stand) / 0.35, 0, 1);
+      p.snow = r < PL.shake0 ? 1 : 0;
+      if (r >= PL.shake0 && r < PL.shake1) {
+        var amp = (r - PL.shake0 < 0.3 || PL.shake1 - r < 0.3) ? 1 : 2;
+        p.dx = (Math.floor(r * 16) % 2 ? 1 : -1) * amp; p.hx = -Math.sign(p.dx); p.blink = true;
+      }
+      p.wag = 0.12;
+    } else if (r < PL.sniff) {
+      var hop = hopAt(r);
+      p.hy = -1; p.wag = 0.12;
+      if (hop) { p.hop = hop.h; p.k = [-3, -2, 3, 2]; p.mouth = hop.s > 0.35 && hop.s < 0.7; }
+    } else if (r < PL.gone) {
+      var down = clamp((r - PL.sniff) / 0.3, 0, 1);
+      p.hy = Math.round(3 * down) + (r >= PL.walk && Math.floor(r * 4) % 2 ? 1 : 0); p.hx = down > 0.5 ? 1 : 0;
+      if (r >= PL.walk) { p.x = walkX(r); p.k = WALKF[Math.floor((r - PL.walk) * 6) % 4]; }
+    } else if (r < PL.back) {
+      return null;
+    } else if (r < PL.home) {
+      p.x = walkX(r); p.flip = true; p.k = WALKF[Math.floor((r - PL.back) * 8) % 4];
+    }
+    p.x = Math.round(p.x);
+    return p;
+  }
+
+  /* draws the posed Astro into PLAYC (facing right, sprite at 8,8), then onto the scene, mirrored when walking back */
+  function drawPlayAstro(c, r, p) {
+    var g = PLAYC.c, O = 8, by = O - p.hop, sat = p.sit >= 0.5, i;
+    g.clearRect(0, 0, PLAYC.cv.width, PLAYC.cv.height);
+    var w = TAIL_WAG[Math.floor(r / p.wag) % 6];
+    if (sat) g.drawImage(A.tail, O + 1 + w[0], O + 16 + Math.abs(w[1]));    /* tail low behind him, sweeping */
+    else g.drawImage(A.tail, O + 2 + w[0] + p.dx, by + 8 + w[1]);
+    var order = [1, 3, 0, 2];
+    for (i = 0; i < 4; i++) {
+      var leg = order[i];
+      if (sat && leg < 2) continue;
+      drawLeg(g, leg, p.k[leg], O, by);
+    }
+    if (sat) for (i = 0; i < 2; i++) { var L = LEG[i]; g.drawImage(A.legs[i], 0, L.h - 2, L.w, 2, O + L.x + 1, O + 28, L.w, 2); }  /* folded hind paws */
+    /* body, the rear lowered when sitting (each column shifted down a little more towards the tail) */
+    for (var col = 0; col < 32; col++) {
+      var off = Math.round(3 * p.sit * Math.max(0, 16 - col) / 16);
+      g.drawImage(A.body, col, 0, 1, 32, O + col + p.dx, by + off, 1, 32);
+    }
+    var hx = O + HEAD.x + p.hx + p.dx, hy = by + HEAD.y + p.hy;
+    g.drawImage(A.head, hx, hy);
+    var fx = hx - HEAD.x, fy = hy - HEAD.y;                                   /* sprite origin of the face */
+    if (p.mouth) { P(g, MOUTH, fx + 23, fy + 15); P(g, MOUTH, fx + 24, fy + 15); P(g, MOUTH, fx + 25, fy + 15); P(g, TONGUE, fx + 24, fy + 16); }
+    if (p.blink) { P(g, A.furA, fx + 20, fy + 11); P(g, A.furB, fx + 26, fy + 11); }
+    var n = Math.floor(p.snow * SNOWPTS.length);
+    for (i = 0; i < n; i++) {
+      var s = SNOWPTS[i];
+      /* a white lump with a blue-grey underside, so it shows on his white fur too */
+      var sx = s[2] ? fx + s[0] : O + s[0] + p.dx, sy = s[2] ? fy + s[1] : by + s[1] + Math.round(3 * p.sit * Math.max(0, 16 - s[0]) / 16);
+      P(g, SNOW_SHADE, sx, sy + 1); P(g, SNOW_SHADE, sx + 1, sy + 1); P(g, INK, sx, sy); P(g, INK, sx + 1, sy);
+    }
+    /* shadow and nose glow on the scene, then the figure */
+    var air = p.hop > 2;
+    ditherEllipse(c, p.x + 16, AY + 30, air ? 12 : 15, air ? 1 : 2, SUNK, air ? 0.32 : 0.55);
+    var noseX = p.x + 25 + p.hx + p.dx, noseY = AY + 13 + p.hy - p.hop;
+    if (p.flip) noseX = p.x + 32 - (noseX - p.x);
+    putGlow(c, G_NOSE[1], noseX, noseY, 1);
+    if (p.flip) { c.save(); c.translate(2 * p.x + 32, 0); c.scale(-1, 1); c.drawImage(PLAYC.cv, p.x - O, AY - O); c.restore(); }
+    else c.drawImage(PLAYC.cv, p.x - O, AY - O);
+  }
+
+  /* "woof" marks, snow flung off by the shake, flakes he snaps at, sniff puffs and paw prints */
+  function drawPlayEffects(c, r, p) {
+    var i, k, s;
+    if (p && !p.flip) {
+      for (i = 0; i < BARKS.length; i++) {
+        s = (r - BARKS[i]) / 0.4; if (s < 0 || s >= 1) continue;
+        c.globalAlpha = 1 - s;
+        for (k = -1; k <= 1; k++) for (var d = 0; d < 3; d++) P(c, INK, Math.round(p.x + 33 + 2 * s + d + 2 * s), Math.round(AY + 13 + k * (2 + d + 3 * s) * 0.6));
+      }
+    }
+    for (i = 0; i < 18; i++) {
+      var t0 = PL.shake0 + (i % 6) * 0.38, age = r - t0;
+      if (age < 0 || age > 0.9) continue;
+      var vx = (hash(i, 71) - 0.5) * 50, vy = -(12 + hash(i, 72) * 26);
+      var ox = AX + 4 + hash(i, 73) * 24, oy = AY + 6 + hash(i, 74) * 12;
+      c.globalAlpha = 1 - age / 0.9;
+      P(c, INK, Math.round(ox + vx * age), Math.round(oy + vy * age + 45 * age * age));
+    }
+    for (i = 0; i < HOPS.length; i++) {
+      var apex = HOPS[i].t + HOP_LEN * 0.5, f = (r - (apex - 1.4)) / 1.4;
+      if (f < 0 || f >= 1) continue;
+      var tx = AX + 26, ty = AY + 13 - HOPS[i].h, fx = Math.round(tx + 4 - 4 * f), fy = Math.round(ty - 30 * (1 - f));
+      c.globalAlpha = 1; P(c, INK, fx, fy); P(c, INK, fx - 1, fy); P(c, INK, fx + 1, fy); P(c, INK, fx, fy - 1); P(c, INK, fx, fy + 1);
+    }
+    if (p && r >= PL.sniff && r < PL.gone) {
+      for (k = 0; k < 3; k++) {
+        s = fract((r - PL.sniff) * 2 + k / 3);
+        c.globalAlpha = (1 - s) * 0.6; P(c, mix(INK, FROST, 0.2), Math.round(p.x + 28 + p.hx + 2 * s), Math.round(AY + 29 - s * 3));
+      }
+    }
+    for (i = 0; i < 40; i++) {
+      var tp = PL.walk + i * 0.32, px = walkX(tp);
+      if (px > W) break;
+      var pa = r - tp; if (pa < 0 || pa > 6) continue;
+      c.globalAlpha = 0.5 * (1 - pa / 6);
+      P(c, PRINT, Math.round(px + (i % 2 ? 9 : 22)), AY + 30); P(c, PRINT, Math.round(px + (i % 2 ? 10 : 23)), AY + 30);
+    }
+    c.globalAlpha = 1;
+  }
+
+  function drawPlay(c, r) {
+    r = ((r % PL.T) + PL.T) % PL.T;
+    var p = playPose(r);
+    if (p) drawPlayAstro(c, r, p);
+    drawPlayEffects(c, r, p);
+  }
+
+  function drawActor(c, t, r) {
+    if (PLAY) { drawPlay(c, r === undefined ? t : r); return; }
     if (!DELIVER) { drawAstro(c, t); return; }
     if (t >= RUN.t0 && t < RUN.t0 + RUN.tauEnd) { drawAstroRun(c, t); return; }
     if (t >= RUN.t0 + RUN.tauEnd && t < D.ret0) return;
@@ -849,7 +1003,8 @@ export function createScene(env) {
   }
 
   /* ------------------------------------------------------------------ frame */
-  function render(c, t) {
+  /* t: scene loop time. r: the play routine's own time (variant 'play' only). */
+  function render(c, t, r) {
     t = ((t % T) + T) % T;
     c.imageSmoothingEnabled = false; c.globalAlpha = 1;
     c.drawImage(sky.cv, 0, 0);
@@ -868,7 +1023,7 @@ export function createScene(env) {
     drawGlitter(c, t);
     drawFlakes(c, t, 1);
     if (DELIVER) { drawPuffs(c, t); drawTrail(c, t); }
-    drawActor(c, t);
+    drawActor(c, t, r);
     if (DELIVER) drawReturn(c, t);
     c.drawImage(front.cv, 0, 0);
     drawFlakes(c, t, 2);
@@ -879,6 +1034,7 @@ export function createScene(env) {
   return {
     W: W, H: H, T: T, render: render, focusX: AX + 16,
     astro: { x0: AX, x1: AX + 32 },                                        /* Astro's sprite box, in scene pixels */
-    delivery: DELIVER ? { dash: RUN.t0, gone: RUN.t0 + RUN.tauEnd } : null  /* when he dashes off, and when he has left the screen */
+    delivery: DELIVER ? { dash: RUN.t0, gone: RUN.t0 + RUN.tauEnd } : null, /* when he dashes off, and when he has left the screen */
+    play: PLAY ? { length: PL.T, still: 6.5 } : null                        /* the routine's loop, and its still frame (sitting) */
   };
 }

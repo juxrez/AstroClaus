@@ -58,6 +58,19 @@ a:not(.btn):hover, a:not(.btn):focus-visible, .link:hover, .link:focus-visible {
 .icon-share-link { --icon: url("../assets/icons/share-link.svg"); }
 .icon-snowflake { --icon: url("../assets/icons/snowflake.svg"); }
 .icon-sparkle { --icon: url("../assets/icons/sparkle.svg"); }
+.icon-check { --icon: url("../assets/icons/check.svg"); }
+.icon-arrow-up-right { --icon: url("../assets/icons/arrow-up-right.svg"); }
+.icon-write { --icon: url("../assets/icons/write.svg"); }
+.icon-arrow-left { --icon: url("../assets/icons/arrow-left.svg"); }
+.icon-x { --icon: url("../assets/icons/x.svg"); }
+.icon-plus { --icon: url("../assets/icons/plus.svg"); }
+.icon-image { --icon: url("../assets/icons/image.svg"); }
+
+/* Motion curves (not in the design system yet, DESIGN.md §7) */
+:root {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+}
 
 /* Stage (design/DESIGN.md §1–3): the diorama fills the screen, and the content sits on one panel
    over the left half. The right half is always left to the scene and Astro. On desktop the page
@@ -71,8 +84,15 @@ body {
   overflow: hidden;
 }
 
+/* The background shows only around the window on phones; the script repaints it with the scene's own snow (rule 13) */
 .diorama { position: fixed; inset: 0; overflow: hidden; background: var(--surface-sunken); }
 .diorama canvas { position: absolute; display: block; image-rendering: pixelated; }
+
+/* The window onto the scene above the letter on phones (§2, rule 13). Once the content shows, the
+   scene slides up into it; the diorama script sets --window-shift (0 everywhere else). */
+.scene-window { display: none; }
+.diorama canvas { transition: transform 700ms var(--ease-in-out); }
+:root:not([data-diorama-front]) .diorama canvas { transform: translateY(var(--window-shift, 0px)); }
 
 .panel {
   position: relative;
@@ -97,11 +117,49 @@ body {
 [data-diorama-front] .panel {
   opacity: 0;
   visibility: hidden;
-  transition: opacity 500ms ease, visibility 0s 500ms;
+  transition: opacity 800ms ease, visibility 0s 800ms;
 }
 
+/* The sending card (§2, rule 6): while a letter is on its way the scene is in front, and this card
+   says what is happening, in the left half where the panel was. It shows after Send on Create
+   (data-sending) and on the letter page until Astro has run off (the delivery scene). */
+.sending-card {
+  position: fixed;
+  inset: 0 50% 0 0;
+  display: grid;
+  place-items: center;
+  padding: var(--space-6);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 400ms ease, visibility 0s 400ms;
+}
+:root[data-diorama-front]:is([data-sending], [data-diorama="delivery"]) .sending-card {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 400ms ease 300ms, visibility 0s; /* comes in as the panel goes */
+}
+.sending-card p {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-6);
+  background: var(--surface-raised);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  font: 700 15px/23px var(--font-sans);
+}
+.sending-card .icon { flex-shrink: 0; color: var(--lantern-ink); }
+@keyframes dot-blink { 0%, 60%, 100% { opacity: 1; } 30% { opacity: 0.2; } }
+.sending-dots span { animation: dot-blink 1200ms linear infinite; }
+.sending-dots span:nth-child(2) { animation-delay: 200ms; }
+.sending-dots span:nth-child(3) { animation-delay: 400ms; }
+
 @media (prefers-reduced-motion: reduce) {
-  .panel { transition: none; }
+  .panel, .diorama canvas { transition: none; }
+  .sending-dots span { animation: none; }
 }
 
 /* Narrow screens: one column, the panel goes full width and the page scrolls over the fixed scene */
@@ -113,17 +171,24 @@ body {
     padding: var(--space-6) var(--space-4);
     overflow: visible;
   }
+  .scene-window { display: block; height: 40svh; }
+  .sending-card { inset: 0; }
 }
 
 /* Page frame, inside the panel */
-.site-header { padding-bottom: var(--space-6); text-align: center; }
+/* The wordmark centred, with room on its left for a link such as Create's Back */
+.site-header { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding-bottom: var(--space-6); }
+.site-header .logo { grid-column: 2; }
+.back-link { grid-column: 1; justify-self: start; display: inline-flex; align-items: center; gap: var(--space-1); min-height: 44px; font-weight: 700; text-decoration: none; }
+/* Too narrow to centre the wordmark beside the link: link on the left, wordmark on the right */
+@media (max-width: 480px) {
+  .site-header:has(.back-link) { grid-template-columns: auto 1fr; gap: var(--space-3); }
+  .site-header:has(.back-link) .logo { justify-self: end; }
+}
 .site-main { flex: 1 0 auto; display: flex; flex-direction: column; justify-content: center; width: 100%; max-width: 720px; margin: 0 auto; }
 .site-footer { display: flex; justify-content: center; align-items: center; gap: var(--space-2); padding-top: var(--space-6); color: var(--ink-muted); }
 
 .page { display: flex; flex-direction: column; gap: var(--space-4); }
-.page-hero { align-items: center; text-align: center; }
-.hero-text { display: flex; flex-direction: column; align-items: center; gap: var(--space-4); }
-.page-head { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); text-align: center; }
 
 /* Buttons */
 .btn {
@@ -137,14 +202,23 @@ body {
   font: 700 15px/23px var(--font-sans);
   text-decoration: none;
   cursor: pointer;
-  transition: background-color 120ms ease, border-color 120ms ease, transform 80ms ease;
+  transition: background-color 120ms ease, border-color 120ms ease, box-shadow 160ms ease, transform 160ms var(--ease-out);
 }
-.btn:active:not(:disabled) { transform: translateY(1px); }
+.btn:active:not(:disabled) { transform: scale(0.97); }
 /* A button that wraps a visually hidden input (Add picture) shows that input's keyboard focus */
 .btn:has(:focus-visible) { box-shadow: var(--focus-ring); }
 
 /* The one lantern action per screen */
 .btn-primary { background: var(--lantern); color: var(--on-lantern); box-shadow: var(--glow); }
+/* Pointed at with a mouse, the lantern glows brighter (not on touch, where hover sticks after a tap) */
+@media (hover: hover) and (pointer: fine) {
+  .btn-primary:not(:disabled):hover {
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--lantern) 50%, transparent),
+                0 8px 36px -4px color-mix(in srgb, var(--lantern) 75%, transparent);
+  }
+}
+/* The glow would otherwise replace the focus ring */
+.btn.btn-primary:focus-visible { box-shadow: var(--focus-ring), var(--glow); }
 /* Everything else: a simple outline, so the lantern button stays the only filled action.
    Hover and press tint with moonlight instead of a surface colour, so they show on any
    background: the panel, a wish card or the share modal. */
@@ -154,6 +228,8 @@ body {
 .btn-quiet { background: transparent; color: var(--ink-muted); }
 .btn-small { padding: var(--space-2) var(--space-4); }
 .btn:disabled { opacity: var(--opacity-disabled); cursor: not-allowed; }
+/* Busy (Send while the letter saves): looks the same, but can't be pressed again */
+.btn[aria-disabled="true"] { pointer-events: none; }
 .btn[hidden] { display: none; }
 
 /* Form */
@@ -167,49 +243,336 @@ body {
   border-radius: var(--radius-md);
   font: 400 15px/23px var(--font-sans);
 }
-textarea.field { resize: vertical; }
 .field::placeholder { color: var(--ink-muted); }
 /* A secondary field, such as a wish's optional link */
 .field-small { padding: var(--space-2) var(--space-3); font: 400 13px/18px var(--font-sans); }
 
-.wishes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-3); }
-.wish { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4); background: var(--surface-raised); border-radius: var(--radius-md); }
-.wish-top { display: flex; gap: var(--space-2); align-items: center; }
-.wish-images { display: flex; flex-wrap: wrap; gap: var(--space-2); }
-.wish-images .is-filled { background: var(--aurora-soft); color: var(--aurora); border-color: var(--aurora); }
-.wish-images .is-filled:hover { background: color-mix(in srgb, var(--aurora) 16%, var(--aurora-soft)); border-color: var(--aurora); }
+/* An icon-only button, such as a wish's remove × */
+.icon-button {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  background: transparent;
+  color: var(--ink-muted);
+  border: 2px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease, transform 160ms var(--ease-out);
+}
+.icon-button:active { transform: scale(0.97); }
+.icon-button[hidden] { display: none; }
 
-.actions { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); text-align: center; }
 
 .banner { padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); margin-bottom: var(--space-4); }
 .banner-error { background: var(--cranberry-soft); color: var(--cranberry); }
 .banner-error.validation-summary-valid { display: none; }
 .banner-error ul { margin: 0; padding-left: var(--space-4); }
 
-.badge { display: inline-block; padding: var(--space-1) var(--space-2); border-radius: var(--radius-sm); }
+.badge { display: inline-flex; align-items: center; gap: var(--space-2); padding: 6px var(--space-3); border-radius: var(--radius-sm); }
+.badge .icon { width: 16px; height: 16px; }
 .badge-aurora { background: var(--aurora-soft); color: var(--aurora); }
+
+/* The letter page (DESIGN.md §4): status row, the paper filling the rest of the panel and scrolling
+   inside itself, then the share section. */
+.site-main:has(> .letter-page) { flex: 1 1 0; min-height: 0; justify-content: flex-start; }
+.letter-page { flex: 1; min-height: 0; }
+.letter-status { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3) var(--space-4); }
+.letter-page .paper {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--paper-line) transparent;
+}
 
 /* The letter: warm paper, the brightest thing on the screen */
 .paper {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  padding: var(--space-6);
+  padding: var(--space-8);
   background: var(--paper);
   color: var(--on-paper);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
   overflow-wrap: anywhere;
 }
-.wish-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-4); }
-.wish-read { display: flex; flex-direction: column; gap: var(--space-2); padding-bottom: var(--space-4); border-bottom: 1px solid var(--paper-line); }
-.wish-read:last-child { border-bottom: 0; }
-/* Links on the paper use its own inks: ice and lantern amber are too light on paper */
-.paper .wish-link { align-self: flex-start; color: var(--paper-muted); }
-.paper .wish-link:hover, .paper .wish-link:focus-visible { color: var(--on-paper); }
-.wish-pictures { display: flex; flex-wrap: wrap; gap: var(--space-2); }
-.wish-pictures img { display: block; width: 120px; height: 120px; object-fit: cover; border-radius: var(--radius-md); background: var(--paper-line); }
+
+.letter-address { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-4); }
+.letter-address .overline { color: var(--paper-muted); line-height: 20px; }
+/* A round North Pole postmark with the sent date, stamped a little crooked */
+.postmark {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 88px;
+  height: 88px;
+  border: 2px solid var(--paper-muted);
+  border-radius: var(--radius-full);
+  box-shadow: inset 0 0 0 3px var(--paper), inset 0 0 0 4px var(--paper-muted);
+  color: var(--paper-muted);
+  font: 700 10px/13px var(--font-sans);
+  letter-spacing: 0.02em;
+  transform: rotate(-10deg);
+}
+.postmark-day { font: 600 16px/20px var(--font-display); letter-spacing: 0; }
+
+/* The child's own words: handwriting on ruled lines, one rule under each line of text */
+.hand {
+  font: 400 20px/28px var(--font-hand);
+  background: repeating-linear-gradient(to bottom, transparent 0 27px, var(--paper-line) 27px 28px);
+}
 .sign-off { text-align: right; }
+
+.wish-cards { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-3); }
+.wish-card {
+  display: flex;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background: color-mix(in srgb, var(--paper), white 45%);
+  border: 1px solid var(--paper-line);
+  border-radius: var(--radius-lg);
+}
+.wish-number {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  background: var(--lantern-soft);
+  color: var(--lantern-ink);
+  font: 600 17px/1 var(--font-display);
+}
+/* padding-top centres the name's first line on the number */
+.wish-body { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-3); padding-top: 2px; }
+.wish-name { font: 700 17px/27px var(--font-sans); }
+/* Links on the paper use its own inks: ice and lantern amber are too light on paper */
+.paper .find-it {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  background: var(--paper);
+  color: var(--paper-muted);
+  border: 1.5px solid var(--paper-line);
+  border-radius: var(--radius-full);
+  font: 700 15px/23px var(--font-sans);
+  text-decoration: none;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+.paper .find-it:hover, .paper .find-it:focus-visible { color: var(--on-paper); border-color: var(--paper-muted); }
+/* Up to two pictures side by side, 140px each, shrinking together on narrow screens */
+.wish-pictures { display: flex; gap: var(--space-2); width: 100%; }
+.wish-pictures a { flex: 0 1 140px; min-width: 0; border-radius: var(--radius-md); }
+.wish-pictures img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: var(--radius-md); background: var(--paper-line); }
+
+.share { display: flex; flex-direction: column; gap: var(--space-2); }
+.share-link { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-1); }
+.share-link .field { flex: 1 1 240px; min-width: 0; }
+.share-apps { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.write-own { align-self: center; font-weight: 700; }
+
+/* Landing (DESIGN.md §4): a left-aligned block, then the three steps */
+.landing { gap: var(--space-8); }
+.landing-intro { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-4); }
+.landing-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3) var(--space-6); margin-top: var(--space-2); }
+.landing-example { font-weight: 700; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: var(--space-4); }
+.step { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4); background: var(--surface-raised); border: 1px solid var(--line); border-radius: var(--radius-lg); }
+.step-icon { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: var(--radius-full); background: var(--lantern-soft); color: var(--lantern-ink); }
+.step-icon .icon { width: 20px; height: 20px; }
+
+/* Create (DESIGN.md §4): the middle scrolls between the header and the action bar. The terms link
+   lives in the action bar, so the site footer isn't shown. */
+.site-main:has(> .create-page) { flex: 1 1 0; min-height: 0; justify-content: flex-start; }
+.panel:has(.create-page) .site-footer { display: none; }
+.create-page, .create-form { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.create-middle {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+  /* Room for focus rings and card edges, without moving the content off the panel's padding */
+  margin: 0 calc(-1 * var(--space-4));
+  padding: var(--space-1) var(--space-4) var(--space-2);
+}
+.create-intro { display: flex; flex-direction: column; gap: var(--space-1); margin-bottom: var(--space-6); }
+.nickname .field { max-width: 420px; }
+
+/* The message, written on the letter paper as it will look once sent */
+.letter-draft { gap: var(--space-2); padding: var(--space-6); transition: box-shadow 150ms ease; }
+.letter-draft:focus-within { box-shadow: var(--shadow-md), var(--focus-ring); }
+.draft-message {
+  display: block;
+  width: 100%;
+  min-height: calc(4 * 28px);
+  field-sizing: content;
+  padding: 0;
+  border: 0;
+  resize: none;
+  color: var(--on-paper);
+  background-attachment: local; /* the ruled lines scroll with the text */
+}
+.draft-message:focus-visible { box-shadow: none; outline: none; } /* the paper shows the focus instead */
+.draft-message::placeholder { color: var(--paper-muted); }
+.draft-count { align-self: flex-end; color: var(--paper-muted); }
+#sign-name:empty::before { content: "your nickname"; color: var(--paper-muted); }
+
+.wishes-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--space-2) var(--space-4); }
+.wishes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-3); }
+.wish {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--surface-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+}
+.wish-top { display: flex; align-items: flex-end; gap: var(--space-3); }
+.wish-field { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.add-wish { align-self: flex-start; }
+
+/* Pictures: thumbnails first, then the Add image tile, then the caption. The slots don't box
+   their children, so the order can mix them. */
+.wish-images { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-4); }
+.picture-slot { display: contents; }
+.thumb { position: relative; order: 0; width: 96px; height: 96px; margin: 0; }
+.thumb[hidden], .add-image[hidden] { display: none; }
+.thumb img { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: var(--radius-md); background: var(--surface-sunken); }
+/* A 28px circle inside a 44px hit area, on the thumbnail's top-right corner */
+.thumb-remove {
+  position: absolute;
+  top: -14px;
+  right: -14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--surface);
+  cursor: pointer;
+}
+.thumb-remove::before { content: ""; position: absolute; width: 28px; height: 28px; border-radius: var(--radius-full); background: var(--ink); }
+.thumb-remove .icon { position: relative; width: 16px; height: 16px; }
+.add-image {
+  position: relative; /* keeps its visually hidden file input inside the scrolling middle */
+  order: 1;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 96px;
+  height: 96px;
+  color: var(--ink-muted);
+  border: 2px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+  font: 700 13px/18px var(--font-sans);
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease, transform 160ms var(--ease-out);
+}
+.add-image:active { transform: scale(0.97); }
+.add-image:has(:focus-visible) { box-shadow: var(--focus-ring); }
+.wish-images .caption { order: 2; }
+
+@media (hover: hover) and (pointer: fine) {
+  .icon-button:hover { color: var(--ink); background: color-mix(in srgb, var(--ink) 8%, transparent); }
+  .add-image:hover { color: var(--ink); border-color: var(--ink-muted); }
+}
+
+.action-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--line);
+}
+.info-note {
+  flex: 1 1 280px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: var(--ice-soft);
+  color: var(--ice);
+  border-radius: var(--radius-md);
+  font: 600 15px/23px var(--font-sans);
+}
+.info-note .icon { flex-shrink: 0; }
+.action-terms { flex-basis: 100%; text-align: right; }
+
+/* Entrances (DESIGN.md §4): the letter and the Landing content appear once each time the page
+   opens. While the scene is in front (just sent, first arrival) the animation isn't set, so it
+   starts as the panel fades in. With reduced motion they only fade. */
+@keyframes rise-in { from { opacity: 0; transform: translateY(16px); } }
+@keyframes fade-in { from { opacity: 0; } }
+:root:not([data-diorama-front]) .letter-page .paper { animation: rise-in 400ms var(--ease-out) both; }
+:root:not([data-diorama-front]) .wish-card {
+  animation: rise-in 300ms var(--ease-out) both;
+  animation-delay: calc(150ms + min(var(--i), 8) * 50ms);
+}
+/* Landing: each .rise piece in turn, --i being its place in the order */
+:root:not([data-diorama-front]) .rise {
+  animation: rise-in 400ms var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 50ms);
+}
+/* Create: an added wish card rises in; a picked picture's thumbnail grows in each time it shows.
+   Removals fade out in the page script. */
+@keyframes card-in { from { opacity: 0; transform: translateY(8px); } }
+@keyframes thumb-in { from { opacity: 0; transform: scale(0.95); } }
+.wish.is-new { animation: card-in 200ms var(--ease-out) both; }
+.thumb { animation: thumb-in 150ms var(--ease-out) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-diorama-front]) .letter-page .paper,
+  :root:not([data-diorama-front]) .wish-card,
+  :root:not([data-diorama-front]) .rise,
+  .wish.is-new,
+  .thumb { animation-name: fade-in; }
+}
+
+/* Narrow screens: the page scrolls instead of the paper. Right after sending, the share section
+   comes first so the sender sees it without scrolling past the letter. */
+@media (max-width: 819px) {
+  .site-main:has(> .letter-page) { flex: 1 0 auto; }
+  .letter-page .paper { flex: none; overflow: visible; }
+  .letter-page[data-just-sent="true"] .share { order: -1; }
+}
+
+/* Narrow screens, Create: the page scrolls instead of the middle, and the action bar sticks to the
+   bottom of the screen, reaching the panel's edges. */
+@media (max-width: 819px) {
+  .site-main:has(> .create-page) { flex: 1 0 auto; }
+  .create-middle { overflow: visible; margin: 0; padding: 0 0 var(--space-4); }
+  .letter-draft { padding: var(--space-4); }
+  .action-bar {
+    position: sticky;
+    bottom: 0;
+    margin: 0 calc(-1 * var(--space-4)) calc(-1 * var(--space-6));
+    padding: var(--space-3) var(--space-4) var(--space-4);
+    background: var(--surface-raised);
+    border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+  }
+  .info-note { padding: var(--space-2) var(--space-3); font: 600 13px/18px var(--font-sans); }
+  .action-bar .btn-primary { flex: 1; }
+  .action-terms { text-align: center; }
+}
 
 /* Modals (share, terms, picture): centred on the whole screen */
 .modal {

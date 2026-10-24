@@ -32,14 +32,14 @@ A looping pixel-art night scene, drawn live by a script (not a video). Source: `
 Built in `wwwroot/js/diorama/`: `scene.js` draws the scene (the source's drawing code, with its own fixed palette), `diorama.js` decides when it plays, how it is framed and when the content is in front. The inline script in `_Layout` decides before the first paint whether the scene starts in front.
 
 ### Where it shows
-1. On every page and every screen size (phones included), the diorama fills the screen behind the panel.
-2. The plain version plays on every page, except the "just sent" letter page (rule 7).
+1. On every page and every screen size (phones included), the diorama fills the screen behind the panel. Landing and the letter page on phones move it into a window at the top (rule 13).
+2. The plain version plays on every page except Landing and the letter page. Right after sending, the letter page shows the delivery version (rule 7). Landing, and a letter opened by a reader (a reload, or anyone with the link), show the **play** version, so Astro greets whoever arrives: Astro barks hello (0–4 s), sits while snow settles on him (4–8 s), shakes it off (8–12 s), snaps at falling flakes (12–15 s), sniffs his way off to the right, walks back in and turns to face us. The routine starts with the bark when the page opens and loops every 26 s on its own clock; the sky keeps its 24 s loop. With reduced motion, the still frame shows him sitting.
 3. The diorama keeps its **own fixed night colours**. It never reads colours from the site's design system, so a palette change can never break it. (The source file reads page colours such as `--surface` and `--ink`; that must be removed, because the design system uses the same names.)
 4. The panel **may cover the cabin and the lamppost, never Astro.** The whole village is seen during the opening and the delivery (rules 5–7), when the content is out of the way.
 
 ### The moments
 5. **First arrival in a browser tab:** the diorama plays full screen with no content for **3 seconds**, then the content fades in on top. Any click or key press skips straight to the content. Every later page in that tab shows its content right away.
-6. **Send:** on Create, clicking **Send to Santa** fades the content out (about 0.5 s) while the letter saves, so the diorama comes to the front. The letter page then opens with the diorama still in front, starting just before Astro's hop. About **3 s** later Astro dashes off with the letter; about **1.5 s** after he leaves the screen, the letter and the `DELIVERED` badge fade in. His run takes about 2 s, so the letter shows about 6.5 s after the letter page opens. A click or key press skips to the letter, as in rule 5.
+6. **Send:** on Create, clicking **Send to Santa** at once changes the button to "Sending…" and stops it from sending again. The content then fades out (about 0.8 s) while the letter saves, so the diorama comes to the front. As it goes, a small **sending card** fades in where the panel was (left half, centred; the whole width on narrow screens): an envelope icon and "Astro is taking your letter to the North Pole…" with three dots blinking in turn, on a solid `surface-raised` card. The letter page then opens with the diorama still in front and the same card in the same place, starting just before Astro's hop. About **3 s** later Astro dashes off with the letter; about **1.5 s** after he leaves the screen, the letter and the `DELIVERED` badge fade in, and the sending card fades out at the same moment. His run takes about 2 s, so the letter shows about 6.5 s after the letter page opens. A click or key press skips to the letter, as in rule 5. With reduced motion nothing fades and there is no sending card: the "Sending…" button is the only sign, and the letter page shows the letter at once (rule 9).
 7. **On the "just sent" letter page** the delivery version keeps looping for as long as the visitor stays. A reload or a later visit to the same link shows the plain version.
 
 ### Behaviour
@@ -48,6 +48,9 @@ Built in `wwwroot/js/diorama/`: `scene.js` draws the scene (the source's drawing
 10. The diorama pauses while the browser tab is hidden.
 11. If the script fails to load, the content still shows. Content is hidden only once the script is running and in control.
 12. The loop runs forever; there is no pause button by design.
+
+### Phones
+13. **On Landing and the letter page on narrow screens, the top 40% of the screen is a window onto the scene.** The panel starts below it and scrolls up over it. The scene keeps its full-screen size but is moved up so its ground sits at the bottom of the window, so Astro stands in the window, close up. Below the window the page takes the colour of the scene's bottom edge (read from the scene itself, rule 3), so the snow carries on behind the panel instead of stopping in a hard line. While the scene is in front (rules 5–7) it fills the screen as usual; when the content appears, the scene slides up into the window (about 0.7 s, none with reduced motion). Other pages are unchanged.
 
 ## 3. The panel
 
@@ -60,40 +63,49 @@ Built in `wwwroot/js/diorama/`: `scene.js` draws the scene (the source's drawing
 
 ### Landing
 - Header: the `ASTROCLAUS` wordmark (pixel font, `logo` style).
-- Main block centred vertically, so the headline lands near the upper thirds line: overline `TO: THE NORTH POLE`, hero headline, one paragraph, then the one primary (`lantern`) button **Write my letter** → Create, plus an `ice` link **See an example letter**.
-- Three step cards in a row: Write it · Send it · Share it.
-- Footer caption: letters are kept for N days (see Limits).
+- Main block, **left-aligned**, centred vertically so the headline lands near the upper thirds line: overline `TO: THE NORTH POLE`, hero headline, one paragraph ("Tell him what you wish for, and Astro will carry your letter north. No account needed."), then side by side the one primary (`lantern`) button **Write my letter** (pencil icon) → Create and an `ice` link **See an example letter** → the example letter (see View letter).
+- Three step cards in a row, stacked on narrow screens. Each has a solid `surface-raised` background, an icon in a `lantern-soft` circle, a bold title and one caption: **1 · Write it** "Your wishes, in your own words." · **2 · Send it** "Astro carries it to the North Pole." · **3 · Share it** "One link for family and friends."
+- Footer caption: "Letters are kept for N days." (N from `RetentionDays`), before the Terms link.
+- **The content appears piece by piece** when it shows (after the opening on first arrival, at once otherwise): the overline, headline, paragraph, actions and each card rise 16px and fade in, 50ms apart (400ms, strong ease-out). With reduced motion they only fade.
 
 ### Create letter
-- Panel = fixed **header** (Back link + wordmark) / **scrolling middle** / fixed **action bar**.
-- Middle, in order: title + subtitle, **Your name**, **Your message** (lined textarea, character counter), **Your wishes**.
-- **Wishes:** a numbered list of cards. Each card: label `Wish N`, text field, remove-wish icon button, an optional link field ("Link (optional): https://…"), then its images.
+- Panel = fixed **header** (**Back** link → Landing, on the left of the wordmark) / **scrolling middle** / fixed **action bar**. No site footer on this page: the terms link is in the action bar. On narrow screens the page scrolls instead and the action bar sticks to the bottom of the screen. No window onto the scene here on phones (§2, rule 13): the form needs the room.
+- Middle, in order: title "Write your letter" + subtitle "Take your time. Astro will wait right here.", **Your nickname** (the terms ask for nicknames, not full names), **Your message**, **Your wishes**.
+- **Your message is written on the letter paper:** a `--paper` card with "Dear Santa," printed at the top (Fredoka), the textarea in the handwriting font on ruled lines (the same as the letter page), the character counter in `paper-muted`, and "With love, *nickname*" under it, filled in live as the nickname is typed. The child sees the letter take shape as they write.
+- **Wishes:** a numbered list of cards. Each card: label `Wish N`, text field, remove-wish icon button (×, hidden while there is only one wish), an optional link field ("Link (optional): https://…"), then its images.
   - Up to **2 images per wish**. Thumbnails 96×96 with a remove button on the top-right corner (visible circle 28px, hit area 44px).
   - While a wish has fewer than 2 images, show a dashed 96×96 **Add image** tile after the thumbnails; hide it at 2.
   - Caption beside the tiles: `N of 2 images`; on an empty wish also the allowed file types and max size.
   - Helper text above the list steers kids toward pictures of the thing they want (not of themselves): "Add a picture of what you're wishing for, up to 2 per wish."
   - Counter `N of MAX wishes` at the top right of the section; **Add a wish** button under the list, hidden at the maximum.
-- Action bar (top border `--line`): info note (`ice` on `ice-soft`) "Once it's sent, your letter can't be changed…" and the one `lantern` button **Send to Santa** (`on-lantern` label, `--glow`). Clicking it fades the content out and brings the diorama to the front (§2, rule 6).
+- Action bar (top border `--line`): info note (`ice` on `ice-soft`) "Once it's sent, your letter can't be changed. Give it one last read.", the one `lantern` button **Send to Santa** (`on-lantern` label, `--glow`), and under it "By sending, you agree to the terms." (the terms popup). Clicking Send shows "Sending…" on the button, fades the content out, brings the diorama to the front and shows the sending card (§2, rule 6). Going back to this page from the letter page brings the form back as it was, with Send ready again.
+- **Motion:** a new wish card rises 8px and fades in (200ms, strong ease-out) and its field gets focus; a removed wish card or picture fades out with `scale(0.98)` (150ms) before it goes; a new thumbnail fades in from `scale(0.95)` (150ms). With reduced motion, no movement.
+- The picture fields stay two plain file inputs per wish (`Image1`, `Image2`), so the page still works without its script: then both **Add image** tiles show and there are no thumbnails.
 
 ### View letter
 - Header: wordmark, linking to Landing.
-- Status row: `DELIVERED` pixel badge (`aurora` on `aurora-soft`, check icon) + caption `Sent DATE · Kept until DATE`.
+- Status row, for everyone who opens the letter: `DELIVERED` pixel badge (`aurora` on `aurora-soft`, check icon) + caption `Sent DATE · Kept until DATE`.
 - Right after sending, the whole panel stays hidden until Astro has run off with the letter, then fades in (§2, rules 6–7).
-- **Letter paper** (`--paper` with `--on-paper` text, `--paper-muted` for the address lines, radius 20px) fills the remaining height and **scrolls inside itself**: `TO: THE NORTH POLE` / `FROM: name`, "Dear Santa,", the message, **My wishes**, then "Love, name".
+- **Letter paper** (`--paper` with `--on-paper` text, `--paper-muted` for the address lines, radius 20px) fills the remaining height and **scrolls inside itself** (on narrow screens the page scrolls instead): `TO: THE NORTH POLE` / `FROM: name` with a round **postmark** beside them (`NORTH POLE` and the sent date, `paper-muted` ink, slightly tilted, decoration only), "Dear Santa,", the message, **My wishes**, then "With love, name".
+  - The message and the "With love, name" line are in the handwriting font (§5) and sit on ruled lines (`--paper-line`, one per line of text). "Dear Santa," stays Fredoka; wish names stay Nunito so the list is easy to read.
   - Clicking a picture opens it in a popup that shows only the picture, as large as fits (never cropped or stretched; on narrow screens at most two thirds of the screen's height), centred. A strip under it, exactly as wide as the picture, shows the wish's name and **Find it here** if the wish has a link. No buttons: Escape or a click outside closes it. One popup is filled with whichever picture was clicked. Ctrl/Cmd-click, or no page script, opens the picture in a new tab.
-  - A wish with a link shows **Find it here** under its text (`paper-muted`, `on-paper` on hover), opening in a new tab. Only `http(s)` links are ever accepted or shown.
-  - Each wish: number badge (`lantern-ink` on `lantern-soft`), wish text in bold body-lg, its images at 140×140, read-only. A wish with no images is a single line.
-- **Share your letter:** heading, one line of help, read-only link field + a secondary (outline) **Copy link** button. This replaces the share modal on desktop unless there's a reason to keep it.
+  - Each wish is a card on the paper: number badge (`lantern-ink` on `lantern-soft`), wish text in bold body-lg, its images at 140×140, read-only. A wish with no images and no link is a single line.
+  - A wish with a link shows a **Find it here ↗** pill under its text (`paper-muted` text and `--paper-line` edge, `on-paper` on hover, at least 44px tall), opening in a new tab. Only `http(s)` links are ever accepted or shown.
+- **The letter appears once** each time the page opens: the paper rises 16px and fades in (400ms, strong ease-out), and the wish cards follow 50ms apart. Right after sending, it starts when the panel fades in after Astro's run. With reduced motion it only fades.
+- **The example letter** (`/letter/example`, linked from Landing) is built into the app and never stored, so it never expires. It is shown like a real letter that a reader opened, except: its sent date is today, it has no "Kept until" date and no share section. Its pictures are files in `wwwroot/letter/example/images/` (placeholders for now: replace the files to change them).
+- **Share your letter**, on every screen size (no share popup): heading, one line of help, read-only link field + a secondary (outline) **Copy link** button, then **Share on WhatsApp** and, where the browser can share, **More ways to share**. Below the paper, except right after sending on narrow screens, where it sits above the letter so the sender sees it first.
 - Footer: `ice` link **Write your own letter** → Create. No `lantern` button on this screen.
 
 ## 5. Rules that apply everywhere
 - **Terms is a popup, not a page.** Every terms link opens it where you are (so a half-written letter is never lost); there is no `/terms` address. Desktop: centred, sized to its text. Narrow screens: two thirds of the screen's height, centred. The title and **Close** stay put and the text scrolls between them. Escape or a click outside also closes it.
 - **One `lantern` (primary) action per screen**, at most.
+- **Buttons** shrink to `scale(0.97)` while pressed (160ms, strong ease-out). The `lantern` button's glow brightens on hover, for mouse pointers only.
+- **The handwriting font** (`--font-hand`, Patrick Hand) is only for the child's own words on the letter: the message and the sign-off. It is the design system's fourth font.
 - Touch targets ≥ 44px. Real `<button>`, `<a href>`, `<label for>` + inputs; icon-only buttons get `aria-label`.
 - Focus ring = `--focus-ring`.
 - UI icons: 24px line icons, 1.75 stroke, round caps, `currentColor`.
 - **Motion:** see §2 (loop, opening, fades, reduced motion).
-- Narrow screens (below ~820px): the halves collapse to one column and the panel goes full width. The diorama stays full-screen behind the panel, the same as on desktop. Desktop is the target; this only has to not break.
+- Narrow screens (below ~820px): the halves collapse to one column and the panel goes full width. The diorama stays full-screen behind the panel, the same as on desktop, except on Landing and the letter page (§2, rule 13). Desktop is the target; this only has to not break.
 
 ## 6. Limits (constitution rule 6)
 
@@ -108,11 +120,11 @@ All numbers in page text must come from `Features/Letters/LetterLimits.cs`, neve
 | `N of [MAX] wishes` | `MaxWishes` (10) |
 | `up to [MAX SIZE]` | `MaxImageKb` (500 KB) |
 | `[FILE TYPES]` | the kinds `ImageKind.Detect` accepts: JPG, PNG, WebP |
-| `2 images per wish` | **missing** — add e.g. `MaxImagesPerWish = 2` |
-| `kept for 90 days` / `Kept until` date | **missing** — add the retention period as a limit |
+| `2 images per wish` | `MaxImagesPerWish` (2; the form has exactly that many picture fields per wish) |
+| `kept for 90 days` / `Kept until` date | `RetentionDays` (90; must match the storage lifecycle rule in `/infra`) |
 
 `MessageMax` is 150 characters, so the message textarea can be shorter than the wireframe's 184px if it looks empty.
 
 ## 7. Open points for the spec
 - The design system has no secondary button yet. The site uses a simple outline (`.btn-secondary`: transparent, `ink` text, 2px `border-strong` edge); add it to the design system if it stays.
-- Should the share modal (`_ShareModal`) stay for mobile, or be replaced everywhere by the inline share section?
+- The design system has no motion curves yet. The site defines `--ease-out` (`cubic-bezier(0.23, 1, 0.32, 1)`) and `--ease-in-out` (`cubic-bezier(0.77, 0, 0.175, 1)`) in `site.css`; move them to the design system if they stay.

@@ -2,7 +2,7 @@
 // sits in front of it (design/DESIGN.md §2). The drawing itself lives in scene.js.
 //
 // Two attributes on <html> carry the state, and CSS does the fading:
-//   data-diorama="plain" | "delivery"   which version of the scene this page shows (set by the server)
+//   data-diorama="plain" | "delivery" | "play"   which version of the scene this page shows (set by the server)
 //   data-diorama-front                  the scene is in front and the content is faded out
 //
 // The inline script in _Layout sets data-diorama-front before the first paint (first arrival in the
@@ -50,17 +50,21 @@ export function startDiorama() {
 
 async function start(content) {
   const delivering = root.dataset.diorama === "delivery";
+  const playing = root.dataset.diorama === "play";
   const canvas = document.getElementById("diorama");
   const panel = document.getElementById("panel");
+  const sceneWindow = document.getElementById("scene-window");
 
-  const scene = createScene({ astroImage: await loadImage(ASTRO_SPRITE), variant: delivering ? "deliver" : undefined });
+  const scene = createScene({ astroImage: await loadImage(ASTRO_SPRITE), variant: delivering ? "deliver" : playing ? "play" : undefined });
   const startAt = delivering ? scene.delivery.dash - DELIVERY_LEAD_S : undefined;
 
   // Reframe on any change to the screen's size, including the first layout (a tab opened in the
   // background starts at 0x0, and some size changes never fire a window "resize").
-  new ResizeObserver(() => frame(canvas, scene, panel)).observe(canvas.parentElement);
+  new ResizeObserver(() => frame(canvas, scene, panel, sceneWindow)).observe(canvas.parentElement);
 
-  play(canvas, scene, createClock(startAt), startAt ?? STILL_PLAIN_S, content);
+  const still = { scene: startAt ?? STILL_PLAIN_S, routine: scene.play?.still };
+  play(canvas, scene, createClock(startAt), createRoutineClock(), still, content);
+  requestAnimationFrame(() => paintAroundScene(canvas)); // after play's first frame, queued just before
 
   if (!root.hasAttribute(FRONT)) {
     content.show();
@@ -103,20 +107,21 @@ function showContentAfter(ms, content) {
 // ---- Playback ---------------------------------------------------------------
 
 // Plays the loop, or holds one still frame while reduced motion is on (rule 9). Hidden tabs get no
-// animation frames, so the loop pauses there by itself (rule 10).
-function play(canvas, scene, clock, stillAt, content) {
+// animation frames, so the loop pauses there by itself (rule 10). routine is the play routine's own
+// clock (the letter page); scenes without a routine ignore it.
+function play(canvas, scene, clock, routine, still, content) {
   const ctx = canvas.getContext("2d", { alpha: false });
   ctx.imageSmoothingEnabled = false;
   let request = 0;
 
   const loop = (now) => {
-    scene.render(ctx, clock(now));
+    scene.render(ctx, clock(now), routine(now));
     request = requestAnimationFrame(loop);
   };
   const update = () => {
     cancelAnimationFrame(request);
     if (reducedMotion.matches) {
-      scene.render(ctx, stillAt);
+      scene.render(ctx, still.scene, still.routine);
       content.show();
     } else {
       request = requestAnimationFrame(loop);
@@ -125,6 +130,12 @@ function play(canvas, scene, clock, stillAt, content) {
 
   reducedMotion.addEventListener("change", update);
   update();
+}
+
+// The play routine starts with Astro's hello when the page opens, unlike the scene, which carries on.
+function createRoutineClock() {
+  const startedAt = performance.now();
+  return (now) => (now - startedAt) / 1000;
 }
 
 // Scene time runs on the wall clock and is kept for the tab, so the scene carries on across page
@@ -147,7 +158,8 @@ function createClock(startAt) {
 // Sideways, on wide screens Astro must stand clear of the content panel (rule 4), zooming in a step
 // or two if that is what it takes. Where that isn't possible (phones, where the panel is full
 // width) the source's framing applies: centre light crops and follow Astro on tall screens.
-function frame(canvas, scene, panel) {
+// sceneWindow: the letter page's window above the panel on phones (rule 13), or null.
+function frame(canvas, scene, panel, sceneWindow) {
   const dpr = devicePixelRatio || 1;
   const vw = canvas.parentElement.clientWidth * dpr;
   const vh = canvas.parentElement.clientHeight * dpr;
@@ -173,6 +185,32 @@ function frame(canvas, scene, panel) {
     left: `${Math.round(left) / dpr}px`,
     top: `${Math.round(vh - height) / dpr}px`,
   });
+  placeInWindow(canvas, sceneWindow, vh / dpr);
+}
+
+// Rule 13: below the window on phones, the page takes the colour of the scene's bottom edge, so the
+// snow carries on behind the panel instead of stopping in a hard line. Elsewhere the scene covers it.
+function paintAroundScene(canvas) {
+  const row = canvas.getContext("2d").getImageData(0, canvas.height - 1, canvas.width, 1).data;
+  const sum = [0, 0, 0];
+  for (let i = 0; i < row.length; i += 4) {
+    sum[0] += row[i];
+    sum[1] += row[i + 1];
+    sum[2] += row[i + 2];
+  }
+  const pixels = row.length / 4;
+  canvas.parentElement.style.background = `rgb(${sum.map((total) => Math.round(total / pixels)).join(", ")})`;
+}
+
+// Rule 13: how far up the scene moves so its ground sits at the bottom of the window (0 when the
+// window is hidden, on wider screens). CSS applies the shift once the content shows, so that moment
+// slides the scene up; a reframe places it at once.
+function placeInWindow(canvas, sceneWindow, screenHeight) {
+  const windowHeight = sceneWindow?.offsetHeight ?? 0;
+  canvas.style.transition = "none";
+  canvas.style.setProperty("--window-shift", `${windowHeight ? windowHeight - screenHeight : 0}px`);
+  canvas.getBoundingClientRect(); // apply the shift before transitions come back
+  canvas.style.transition = "";
 }
 
 // The left offset that keeps the screen covered and Astro between the panel and the right edge,

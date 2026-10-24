@@ -11,11 +11,11 @@ namespace AstroClaus.API.Features.Letters;
 /// Letters are written once and never overwritten. The 90-day retention is an
 /// Azure lifecycle rule (see /infra), not app code.
 /// </summary>
-public sealed class BlobLetterStore(BlobServiceClient service) : ILetterStore
+public sealed class BlobLetterStore(BlobServiceClient service, ILogger<BlobLetterStore> logger) : ILetterStore
 {
     private const string ContainerName = "letters";
     private const string LetterFileName = "letter.json";
-
+    private readonly ILogger<BlobLetterStore> _logger = logger;
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
     public async Task SaveAsync(Letter letter, IReadOnlyList<StoredImage> images, CancellationToken ct)
@@ -57,6 +57,7 @@ public sealed class BlobLetterStore(BlobServiceClient service) : ILetterStore
         }
         catch (RequestFailedException e) when (e.Status == (int)HttpStatusCode.NotFound)
         {
+            _logger.LogWarning("Letter {Id} not found.", id);
             return null;
         }
     }
@@ -72,6 +73,7 @@ public sealed class BlobLetterStore(BlobServiceClient service) : ILetterStore
         }
         catch (RequestFailedException e) when (e.Status == (int)HttpStatusCode.NotFound)
         {
+            _logger.LogWarning("Image: {FileName}. With id: {Id} not found.", id, fileName);
             return null;
         }
     }

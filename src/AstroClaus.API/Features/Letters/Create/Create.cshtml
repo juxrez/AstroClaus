@@ -5,51 +5,80 @@
     ViewData["Title"] = "Write your letter";
 }
 
-<section class="page" data-motion="create">
-    <div class="page-head">
-        <h1 class="title">Dear Santa,</h1>
-    </div>
+@section HeaderStart {
+    <a class="back-link" href="/">
+        <span class="icon icon-arrow-left" aria-hidden="true"></span>
+        Back
+    </a>
+}
 
-    <form method="post" enctype="multipart/form-data" id="letter-form" data-max-wishes="@LetterLimits.MaxWishes" data-max-image-bytes="@LetterLimits.MaxImageBytes">
-        <div asp-validation-summary="All" class="banner banner-error body"></div>
+@* The header (layout) and the action bar stay put; the middle scrolls between them (design/DESIGN.md §4) *@
+<section class="page create-page">
+    <form method="post" enctype="multipart/form-data" id="letter-form" class="create-form"
+          data-max-wishes="@LetterLimits.MaxWishes" data-max-images="@LetterLimits.MaxImagesPerWish" data-max-image-bytes="@LetterLimits.MaxImageBytes">
+        <div class="create-middle">
+            <div class="create-intro">
+                <h1 class="title">Write your letter</h1>
+                <p class="body muted">Take your time. Astro will wait right here.</p>
+            </div>
 
-        <div class="group">
-            <label class="heading" for="from">Your nickname</label>
-            <input class="field" id="from" asp-for="Form.From" maxlength="@LetterLimits.FromMax" placeholder="Who is this from?" autocomplete="off" />
-        </div>
+            <div asp-validation-summary="All" class="banner banner-error body"></div>
 
-        <div class="group">
-            <label class="heading" for="message">Your message</label>
-            <textarea class="field body-lg" id="message" asp-for="Form.Message" rows="4"
-                      maxlength="@LetterLimits.MessageMax" placeholder="This year I have been very good..."></textarea>
-            <p class="caption muted" aria-live="polite"><span id="message-count">0</span> / @LetterLimits.MessageMax</p>
-        </div>
+            <div class="group nickname">
+                <label class="heading" for="from">Your nickname</label>
+                <input class="field" id="from" asp-for="Form.From" maxlength="@LetterLimits.FromMax" placeholder="Who is this from?" autocomplete="off" />
+            </div>
 
-        <div class="group">
-            <h2 class="heading">My wish list</h2>
-            <p class="caption muted">Add up to @LetterLimits.MaxWishes wishes, with up to 2 pictures each. A screenshot is the easiest way to show Santa what you mean. Each picture must be under @LetterLimits.MaxImageKb KB.</p>
+            <div class="group">
+                <label class="heading" for="message">Your message</label>
+                @* Written on the letter paper, as it will look once sent. The sign-off fills in with the nickname. *@
+                <div class="paper letter-draft">
+                    <p class="subtitle">Dear Santa,</p>
+                    <textarea class="hand draft-message" id="message" asp-for="Form.Message" rows="4"
+                              maxlength="@LetterLimits.MessageMax" placeholder="This year I have been very good..."></textarea>
+                    <p class="caption draft-count" aria-live="polite"><span id="message-count">0</span> / @LetterLimits.MessageMax</p>
+                    <p class="hand sign-off" aria-hidden="true">With love, <span id="sign-name">@Model.Form.From</span></p>
+                </div>
+            </div>
 
-            <ol class="wishes" id="wishes">
-                @for (var i = 0; i < Model.Form.Wishes.Count; i++)
-                {
-                    <partial name="_WishRow" model="@((i.ToString(), Model.Form.Wishes[i]))" />
-                }
-            </ol>
+            <section class="group" aria-labelledby="wishes-title">
+                <div class="wishes-head">
+                    <div>
+                        <h2 class="heading" id="wishes-title">Your wishes</h2>
+                        <p class="body muted">Add a picture of what you're wishing for, up to @LetterLimits.MaxImagesPerWish per wish.</p>
+                    </div>
+                    <p class="caption muted" aria-live="polite"><span id="wish-count">@Model.Form.Wishes.Count</span> of @LetterLimits.MaxWishes wishes</p>
+                </div>
 
-            <button type="button" class="btn btn-secondary" id="add-wish">Add another wish</button>
-            <p class="caption error-text" id="image-error" role="alert" hidden></p>
+                <ol class="wishes" id="wishes">
+                    @for (var i = 0; i < Model.Form.Wishes.Count; i++)
+                    {
+                        <partial name="_WishRow" model="@((i.ToString(), Model.Form.Wishes[i]))" />
+                    }
+                </ol>
+
+                <button type="button" class="btn btn-secondary add-wish" id="add-wish">
+                    <span class="icon icon-plus" aria-hidden="true"></span>
+                    Add a wish
+                </button>
+                <p class="caption error-text" id="image-error" role="alert" hidden></p>
+            </section>
         </div>
 
         <template id="wish-template">
             <partial name="_WishRow" model="@(("__i__", new WishForm()))" />
         </template>
 
-        <div class="actions">
-            <button type="submit" class="btn btn-primary">
+        <div class="action-bar">
+            <p class="info-note">
+                <span class="icon icon-sparkle" aria-hidden="true"></span>
+                Once it's sent, your letter can't be changed. Give it one last read.
+            </p>
+            <button type="submit" class="btn btn-primary" id="send">
                 <span class="icon icon-send" aria-hidden="true"></span>
-                Send to Santa
+                <span data-label>Send to Santa</span>
             </button>
-            <p class="caption muted">By sending, you agree to the <button type="button" class="link" data-open-modal="terms-modal">terms</button>. A sent letter can't be changed.</p>
+            <p class="caption muted action-terms">By sending, you agree to the <button type="button" class="link" data-open-modal="terms-modal">terms</button>.</p>
         </div>
     </form>
 </section>

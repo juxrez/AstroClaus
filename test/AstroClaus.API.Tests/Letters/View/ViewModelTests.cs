@@ -72,6 +72,28 @@ public class ViewModelTests
         });
     }
 
+    [Test]
+    public async Task ExampleId_ShowsTheBuiltInExampleWithoutAskingTheStore()
+    {
+        // Arrange
+        var store = new FakeLetterStore();
+        var model = NewModel(store);
+
+        // Act
+        var result = await model.OnGetAsync(ExampleLetter.Id, sent: true, CancellationToken.None);
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(result, Is.TypeOf<PageResult>());
+            Assert.That(model.Response.StatusCode, Is.EqualTo(StatusCodes.Status200OK));
+            Assert.That(model.IsExample, Is.True);
+            Assert.That(model.Letter?.Id, Is.EqualTo(ExampleLetter.Id));
+            Assert.That(model.JustSent, Is.False);
+            Assert.That(store.GetCalls, Is.Zero);
+        });
+    }
+
     private static ViewModel NewModel(FakeLetterStore store)
     {
         var http = new DefaultHttpContext();

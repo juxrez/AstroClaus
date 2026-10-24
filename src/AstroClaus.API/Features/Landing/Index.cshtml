@@ -1,17 +1,47 @@
 @page "/"
 @model AstroClaus.API.Features.Landing.IndexModel
+@using AstroClaus.API.Features.Letters
 @{
     ViewData["Title"] = "Write a letter to Santa";
+    // Astro greets whoever arrives; on phones he shows in a window above the panel (design/DESIGN.md §2, rules 2 and 13).
+    ViewData["Diorama"] = "play";
+    ViewData["SceneWindow"] = true;
 }
 
-<section class="page page-hero" data-motion="hero">
-    <div class="hero-text">
-        <p class="overline">TO: THE NORTH POLE</p>
-        <h1 class="hero-title">Write a letter to Santa</h1>
-        <p class="body-lg">Tell him what you wish for, and Astro will carry your letter north. No account needed.</p>
-        <a class="btn btn-primary" href="/write">
-            <span class="icon icon-envelope" aria-hidden="true"></span>
-            Write your letter
-        </a>
+@* .rise pieces appear one after another; --i is their place in that order *@
+<section class="page landing">
+    <div class="landing-intro">
+        <p class="overline rise" style="--i: 0">TO: THE NORTH POLE</p>
+        <h1 class="hero-title rise" style="--i: 1">Write a letter to Santa</h1>
+        <p class="body-lg rise" style="--i: 2">Tell him what you wish for, and Astro will carry your letter north. No account needed.</p>
+        <div class="landing-actions rise" style="--i: 3">
+            <a class="btn btn-primary" href="/write">
+                <span class="icon icon-write" aria-hidden="true"></span>
+                Write my letter
+            </a>
+            <a class="landing-example" href="/letter/example">See an example letter</a>
+        </div>
     </div>
+
+    <ol class="steps">
+        <li class="step rise" style="--i: 4">
+            <span class="step-icon"><span class="icon icon-write" aria-hidden="true"></span></span>
+            <p class="body-strong">1 · Write it</p>
+            <p class="caption muted">Your wishes, in your own words.</p>
+        </li>
+        <li class="step rise" style="--i: 5">
+            <span class="step-icon"><span class="icon icon-envelope" aria-hidden="true"></span></span>
+            <p class="body-strong">2 · Send it</p>
+            <p class="caption muted">Astro carries it to the North Pole.</p>
+        </li>
+        <li class="step rise" style="--i: 6">
+            <span class="step-icon"><span class="icon icon-share-link" aria-hidden="true"></span></span>
+            <p class="body-strong">3 · Share it</p>
+            <p class="caption muted">One link for family and friends.</p>
+        </li>
+    </ol>
 </section>
+
+@section FooterNote {
+    <span>Letters are kept for @LetterLimits.RetentionDays days.</span>
+}

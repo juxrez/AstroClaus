@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-@* ViewData["Diorama"]: "delivery" on the page a letter was just sent to, otherwise the plain scene (design/DESIGN.md §2). *@
+@* ViewData["Diorama"]: "delivery" on the page a letter was just sent to, "play" on a letter opened by a reader, otherwise the plain scene (design/DESIGN.md §2). *@
 <html lang="en" data-diorama="@(ViewData["Diorama"] as string ?? "plain")">
 <head>
     <meta charset="utf-8" />
@@ -7,7 +7,7 @@
     <title>@(ViewData["Title"] is string t ? $"{t} · Astro Claus" : "Astro Claus")</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Nunito:wght@400;600;700&family=Press+Start+2P&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Nunito:wght@400;600;700&family=Patrick+Hand&family=Press+Start+2P&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="~/css/tokens.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 
@@ -38,8 +38,17 @@
         <canvas id="diorama" width="320" height="180"></canvas>
     </div>
 
+    @* ViewData["SceneWindow"]: on narrow screens, keep the top of the screen clear so Astro shows above
+       the panel (design/DESIGN.md §2, rule 13). Hidden on wider screens. *@
+    @if (ViewData["SceneWindow"] is true)
+    {
+        <div class="scene-window" id="scene-window" aria-hidden="true"></div>
+    }
+
     <div class="panel" id="panel">
+        @* HeaderStart: an optional link on the left of the wordmark, such as Create's Back link *@
         <header class="site-header">
+            @await RenderSectionAsync("HeaderStart", required: false)
             <a class="logo" href="/">ASTRO CLAUS</a>
         </header>
 
@@ -48,9 +57,19 @@
         </main>
 
         <footer class="site-footer caption">
+            @await RenderSectionAsync("FooterNote", required: false)
             <span class="icon icon-snowflake" aria-hidden="true"></span>
             <button type="button" class="link" data-open-modal="terms-modal">Terms</button>
         </footer>
+    </div>
+
+    @* Shown while a letter is on its way: from Send on Create until Astro has run off on the letter
+       page (design/DESIGN.md §2, rule 6). Hidden everywhere else by site.css. *@
+    <div class="sending-card" role="status">
+        <p>
+            <span class="icon icon-envelope" aria-hidden="true"></span>
+            <span>Astro is taking your letter to the North Pole<span class="sending-dots" aria-hidden="true"><span>.</span><span>.</span><span>.</span></span></span>
+        </p>
     </div>
 
     <partial name="_TermsModal" />

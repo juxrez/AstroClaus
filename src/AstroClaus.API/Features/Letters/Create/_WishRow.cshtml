@@ -1,24 +1,46 @@
-@* Model: (index, wish). The index is "__i__" in the template the page script clones. *@
+@* Model: (index, wish). The index is "__i__" in the template the page script clones; the script
+   numbers the cards. *@
 @using AstroClaus.API.Features.Letters
 @model (string Index, AstroClaus.API.Features.Letters.Create.WishForm Wish)
-<li class="wish" data-wish data-motion="wish-item">
+@{
+    var number = int.TryParse(Model.Index, out var index) ? (index + 1).ToString() : "";
+}
+<li class="wish" data-wish>
     <div class="wish-top">
-        <input class="field" type="text" name="Form.Wishes[@Model.Index].Name" value="@Model.Wish.Name"
-               maxlength="@LetterLimits.WishNameMax" placeholder="A wish, like &quot;a red bike&quot;"
-               aria-label="Wish" />
-        <button type="button" class="btn btn-quiet" data-remove-wish>Remove</button>
+        <label class="wish-field">
+            <span class="body-strong" data-wish-label>Wish @number</span>
+            <input class="field" type="text" name="Form.Wishes[@Model.Index].Name" value="@Model.Wish.Name"
+                   maxlength="@LetterLimits.WishNameMax" placeholder="What are you wishing for?" />
+        </label>
+        <button type="button" class="icon-button" data-remove-wish aria-label="Remove wish @number">
+            <span class="icon icon-x" aria-hidden="true"></span>
+        </button>
     </div>
     <input class="field field-small" type="url" name="Form.Wishes[@Model.Index].Link" value="@Model.Wish.Link"
            maxlength="@LetterLimits.WishLinkMax" placeholder="Link (optional): https://…"
            aria-label="Where to find it (optional link)" autocomplete="off" />
+
+    @* One slot per picture field: its thumbnail once a picture is picked, otherwise its Add image
+       tile. The page script shows only the first empty tile; without the script both tiles show. *@
     <div class="wish-images">
-        <label class="btn btn-secondary btn-small">
-            Add picture
-            <input class="visually-hidden" type="file" name="Form.Wishes[@Model.Index].Image1" accept="image/jpeg,image/png,image/webp" data-image />
-        </label>
-        <label class="btn btn-secondary btn-small">
-            Add picture
-            <input class="visually-hidden" type="file" name="Form.Wishes[@Model.Index].Image2" accept="image/jpeg,image/png,image/webp" data-image />
-        </label>
+        @foreach (var field in new[] { nameof(Model.Wish.Image1), nameof(Model.Wish.Image2) })
+        {
+            <div class="picture-slot" data-picture-slot>
+                <figure class="thumb" data-thumb hidden>
+                    <img alt="" />
+                    <button type="button" class="thumb-remove" data-remove-picture aria-label="Remove picture">
+                        <span class="icon icon-x" aria-hidden="true"></span>
+                    </button>
+                </figure>
+                <label class="add-image">
+                    <span class="icon icon-image" aria-hidden="true"></span>
+                    Add image
+                    <input class="visually-hidden" type="file" name="Form.Wishes[@Model.Index].@field" accept="image/jpeg,image/png,image/webp" data-image />
+                </label>
+            </div>
+        }
+        <p class="caption muted">
+            <span data-images-count>0 of @LetterLimits.MaxImagesPerWish images</span><span data-images-hint> · JPG, PNG or WebP, up to @LetterLimits.MaxImageKb KB</span>
+        </p>
     </div>
 </li>

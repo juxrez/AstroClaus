@@ -1,66 +1,112 @@
 @page "/letter/{id}"
 @model AstroClaus.API.Features.Letters.View.ViewModel
+@using System.Globalization
 @{
     ViewData["Title"] = Model.Letter is null ? "Letter delivered" : $"A letter from {Model.Letter.From}";
-    if (Model.JustSent)
+    // Just sent: Astro runs off with the letter. Opened by a reader: Astro plays in the snow.
+    // On phones he shows in a window above the letter (design/DESIGN.md §2, rule 13).
+    if (Model.Letter is not null)
     {
-        ViewData["Diorama"] = "delivery";
+        ViewData["Diorama"] = Model.JustSent ? "delivery" : "play";
+        ViewData["SceneWindow"] = true;
     }
 }
 
 @if (Model.Letter is { } letter)
 {
-    <section class="page" data-motion="view" data-open-share="@(Model.JustSent ? "true" : "false")">
-        @if (Model.JustSent)
-        {
-            <div class="page-head">
-                <span class="badge badge-aurora pixel-tag">DELIVERED</span>
-            </div>
-        }
+    var sent = letter.CreatedAt;
+    var whatsApp = "https://wa.me/?text=" + Uri.EscapeDataString("I wrote a letter to Santa. Read it here: " + Model.ShareUrl);
 
-        <article class="paper" data-motion="letter-paper">
-            <p class="subtitle">Dear Santa,</p>
-            <p class="body-lg">@letter.Message</p>
-
-            <h2 class="heading">My wish list</h2>
-            <ul class="wish-list">
-                @foreach (var wish in letter.Wishes)
+    @* data-just-sent: on narrow screens the share section moves above the letter (DESIGN.md §4) *@
+    <section class="page letter-page" data-just-sent="@(Model.JustSent ? "true" : "false")">
+        <div class="letter-status">
+            <span class="badge badge-aurora pixel-tag">
+                <span class="icon icon-check" aria-hidden="true"></span>
+                DELIVERED
+            </span>
+            <span class="caption muted">
+                Sent @sent.ToString("d MMM yyyy", CultureInfo.InvariantCulture)
+                @if (!Model.IsExample)
                 {
-                    <li class="wish-read" data-motion="wish-item" data-letter-wish>
-                        <p class="body-strong" data-wish-name>@wish.Name</p>
-                        @if (Wish.IsWebLink(wish.Link))
-                        {
-                            <a class="wish-link caption" href="@wish.Link" target="_blank" rel="noopener noreferrer nofollow ugc" data-wish-link>Find it here<span class="visually-hidden">: @wish.Name</span></a>
-                        }
-                        @if (wish.Images.Count > 0)
-                        {
-                            <div class="wish-pictures">
-                                @foreach (var image in wish.Images)
-                                {
-                                    @* Opens in the picture modal; without the page script, in a new tab *@
-                                    <a href="/letter/@letter.Id/images/@image" target="_blank" rel="noopener" data-picture>
-                                        <img src="/letter/@letter.Id/images/@image" alt="Picture for @wish.Name" loading="lazy" />
-                                    </a>
-                                }
-                            </div>
-                        }
+                    @:· Kept until @sent.AddDays(LetterLimits.RetentionDays).ToString("d MMM yyyy", CultureInfo.InvariantCulture)
+                }
+            </span>
+        </div>
+
+        <article class="paper" aria-label="The letter">
+            <div class="letter-address">
+                <p class="overline">TO: THE NORTH POLE<br />FROM: @letter.From.ToUpperInvariant()</p>
+                @* Decoration only: the status row above says the same in words *@
+                <div class="postmark" aria-hidden="true">
+                    <span>NORTH POLE</span>
+                    <span class="postmark-day">@sent.ToString("d MMM", CultureInfo.InvariantCulture).ToUpperInvariant()</span>
+                    <span>@sent.Year</span>
+                </div>
+            </div>
+
+            <p class="subtitle">Dear Santa,</p>
+            <p class="hand">@letter.Message</p>
+
+            <h2 class="heading">My wishes</h2>
+            <ol class="wish-cards">
+                @for (var i = 0; i < letter.Wishes.Count; i++)
+                {
+                    var wish = letter.Wishes[i];
+                    @* --i staggers the cards' entrance *@
+                    <li class="wish-card" style="--i: @i" data-letter-wish>
+                        <span class="wish-number" aria-hidden="true">@(i + 1)</span>
+                        <div class="wish-body">
+                            <p class="wish-name" data-wish-name>@wish.Name</p>
+                            @if (Wish.IsWebLink(wish.Link))
+                            {
+                                <a class="find-it" href="@wish.Link" target="_blank" rel="noopener noreferrer nofollow ugc" data-wish-link>
+                                    Find it here<span class="visually-hidden">: @wish.Name</span>
+                                    <span class="icon icon-arrow-up-right" aria-hidden="true"></span>
+                                </a>
+                            }
+                            @if (wish.Images.Count > 0)
+                            {
+                                <div class="wish-pictures">
+                                    @foreach (var image in wish.Images)
+                                    {
+                                        @* Opens in the picture modal; without the page script, in a new tab *@
+                                        <a href="/letter/@letter.Id/images/@image" target="_blank" rel="noopener" data-picture>
+                                            <img src="/letter/@letter.Id/images/@image" alt="Picture for @wish.Name" loading="lazy" />
+                                        </a>
+                                    }
+                                </div>
+                            }
+                        </div>
                     </li>
                 }
-            </ul>
+            </ol>
 
-            <p class="subtitle sign-off">With love, @letter.From</p>
+            <p class="hand sign-off">With love, @letter.From</p>
         </article>
 
-        <div class="actions">
-            <button type="button" class="btn btn-primary" data-open-modal="share-modal">
-                <span class="icon icon-share-link" aria-hidden="true"></span>
-                Share or copy link
-            </button>
-            <a class="btn btn-secondary" href="/write">Write your own letter</a>
-        </div>
-    </section>
+        @* The example isn't the visitor's own letter, so there is nothing of theirs to share *@
+        @if (!Model.IsExample)
+        {
+            <section class="share" aria-labelledby="share-title">
+                <h2 class="heading" id="share-title">Share your letter</h2>
+                <p class="body muted">Anyone with this link can read it. It always shows the same letter.</p>
+                <div class="share-link">
+                    <label class="visually-hidden" for="share-link">Letter link</label>
+                    <input class="field" id="share-link" type="text" readonly value="@Model.ShareUrl" />
+                    <button type="button" class="btn btn-secondary" id="copy-link">
+                        <span class="icon icon-share-link" aria-hidden="true"></span>
+                        <span data-label>Copy link</span>
+                    </button>
+                </div>
+                <div class="share-apps">
+                    <a class="btn btn-secondary btn-small" href="@whatsApp" target="_blank" rel="noopener">Share on WhatsApp</a>
+                    <button type="button" class="btn btn-secondary btn-small" id="native-share" hidden>More ways to share</button>
+                </div>
+            </section>
+        }
 
-    <partial name="_ShareModal" model="Model.ShareUrl" />
+        <a class="write-own" href="/write">Write your own letter</a>
+    </section>
 
     @* One modal for every picture on the letter; the page script fills it with the picture clicked.
        No buttons: Escape or a click outside closes it. *@
@@ -78,7 +124,7 @@ else
 {
     <section class="page" data-motion="view">
         <h1 class="title">This letter has been delivered</h1>
-        <p class="body">Letters stay for 90 days, then Astro carries them to the North Pole for good. This one is already with Santa.</p>
+        <p class="body">Letters stay for @LetterLimits.RetentionDays days, then Astro carries them to the North Pole for good. This one is already with Santa.</p>
         <a class="btn btn-primary" href="/write">Write a letter</a>
     </section>
 }

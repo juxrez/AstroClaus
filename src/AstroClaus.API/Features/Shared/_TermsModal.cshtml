@@ -1,4 +1,5 @@
 @* The terms, on every page. Any button with data-open-modal="terms-modal" opens it. *@
+@using AstroClaus.API.Features.Letters
 <dialog class="modal modal-terms" id="terms-modal" aria-labelledby="terms-title">
     <div class="modal-body">
         <h2 class="title" id="terms-title">Before you write</h2>
@@ -13,8 +14,8 @@
             <h3 class="heading">Letters can't be changed</h3>
             <p class="body">Once a letter is sent, it can't be edited or taken back.</p>
 
-            <h3 class="heading">Letters stay for 90 days</h3>
-            <p class="body">After 90 days, Astro carries the letter to the North Pole for good, and its link stops working.</p>
+            <h3 class="heading">Letters stay for @LetterLimits.RetentionDays days</h3>
+            <p class="body">After @LetterLimits.RetentionDays days, Astro carries the letter to the North Pole for good, and its link stops working.</p>
         </div>
 
         <button type="button" class="btn btn-secondary" data-close-modal>Close</button>
