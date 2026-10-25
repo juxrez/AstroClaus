@@ -2,7 +2,7 @@
 // sits in front of it (design/DESIGN.md §2). The drawing itself lives in scene.js.
 //
 // Two attributes on <html> carry the state, and CSS does the fading:
-//   data-diorama="plain" | "delivery" | "play"   which version of the scene this page shows (set by the server)
+//   data-diorama="plain" | "delivery" | "play" | "greet"   which version of the scene this page shows (set by the server)
 //   data-diorama-front                  the scene is in front and the content is faded out
 //
 // The inline script in _Layout sets data-diorama-front before the first paint (first arrival in the
@@ -51,19 +51,22 @@ export function startDiorama() {
 async function start(content) {
   const delivering = root.dataset.diorama === "delivery";
   const playing = root.dataset.diorama === "play";
+  const greeting = root.dataset.diorama === "greet";
   const canvas = document.getElementById("diorama");
   const panel = document.getElementById("panel");
   const sceneWindow = document.getElementById("scene-window");
 
-  const scene = createScene({ astroImage: await loadImage(ASTRO_SPRITE), variant: delivering ? "deliver" : playing ? "play" : undefined });
+  const variant = delivering ? "deliver" : playing ? "play" : greeting ? "greet" : undefined;
+  const scene = createScene({ astroImage: await loadImage(ASTRO_SPRITE), variant });
   const startAt = delivering ? scene.delivery.dash - DELIVERY_LEAD_S : undefined;
 
   // Reframe on any change to the screen's size, including the first layout (a tab opened in the
   // background starts at 0x0, and some size changes never fire a window "resize").
   new ResizeObserver(() => frame(canvas, scene, panel, sceneWindow)).observe(canvas.parentElement);
 
-  const still = { scene: startAt ?? STILL_PLAIN_S, routine: scene.play?.still };
-  play(canvas, scene, createClock(startAt), createRoutineClock(), still, content);
+  const still = { scene: startAt ?? STILL_PLAIN_S, routine: scene.routine?.still };
+  const reactions = greeting ? createReactions(scene, canvas) : null;
+  play(canvas, scene, createClock(startAt), createRoutineClock(), reactions, still, content);
   requestAnimationFrame(() => paintAroundScene(canvas)); // after play's first frame, queued just before
 
   if (!root.hasAttribute(FRONT)) {
@@ -107,15 +110,19 @@ function showContentAfter(ms, content) {
 // ---- Playback ---------------------------------------------------------------
 
 // Plays the loop, or holds one still frame while reduced motion is on (rule 9). Hidden tabs get no
-// animation frames, so the loop pauses there by itself (rule 10). routine is the play routine's own
-// clock (the letter page); scenes without a routine ignore it.
-function play(canvas, scene, clock, routine, still, content) {
+// animation frames, so the loop pauses there by itself (rule 10). routine is the routine's own
+// clock (the letter page and the landing); scenes without a routine ignore it. reactions (the
+// landing only, else null) can take over from the routine, which waits meanwhile.
+function play(canvas, scene, clock, routine, reactions, still, content) {
   const ctx = canvas.getContext("2d", { alpha: false });
   ctx.imageSmoothingEnabled = false;
   let request = 0;
 
   const loop = (now) => {
-    scene.render(ctx, clock(now), routine(now));
+    const reaction = reactions?.at(now) ?? null;
+    if (reaction) routine.pause(now);
+    else routine.resume(now);
+    scene.render(ctx, clock(now), routine(now), reaction);
     request = requestAnimationFrame(loop);
   };
   const update = () => {
@@ -132,10 +139,79 @@ function play(canvas, scene, clock, routine, still, content) {
   update();
 }
 
-// The play routine starts with Astro's hello when the page opens, unlike the scene, which carries on.
+// The routine starts with Astro's hello when the page opens, unlike the scene, which carries on.
+// pause/resume hold it while a reaction plays, so it carries on where it was.
 function createRoutineClock() {
-  const startedAt = performance.now();
-  return (now) => (now - startedAt) / 1000;
+  let startedAt = performance.now();
+  let pausedAt = null;
+  const clock = (now) => ((pausedAt ?? now) - startedAt) / 1000;
+  clock.pause = (now) => { pausedAt ??= now; };
+  clock.resume = (now) => {
+    if (pausedAt === null) return;
+    startedAt += now - pausedAt;
+    pausedAt = null;
+  };
+  return clock;
+}
+
+// ---- Reactions (the landing) --------------------------------------------------
+
+// Astro reacts to you: while the page's main button ([data-astro-reacts]) is hovered or has keyboard
+// focus he faces it and bounces, and a click or tap on him gets a hop, a bark and a heart. The button
+// itself is never held up. at(now) gives the reaction playing now, or null.
+function createReactions(scene, canvas) {
+  const button = document.querySelector("[data-astro-reacts]");
+  const causes = new Set(); // "pointer" and/or "focus": what keeps the button reaction going
+  let buttonAt = null;
+  let faceLeft = false;
+  let petAt = -Infinity;
+
+  const setCause = (cause, on) => {
+    if (on) causes.add(cause);
+    else causes.delete(cause);
+    if (!causes.size) buttonAt = null;
+    else if (buttonAt === null) {
+      buttonAt = performance.now();
+      faceLeft = centreX(button.getBoundingClientRect()) < centreX(astroBox(scene, canvas));
+    }
+  };
+  if (button) {
+    button.addEventListener("pointerenter", () => setCause("pointer", true));
+    button.addEventListener("pointerleave", () => setCause("pointer", false));
+    button.addEventListener("focus", () => setCause("focus", button.matches(":focus-visible")));
+    button.addEventListener("blur", () => setCause("focus", false));
+  }
+
+  addEventListener("click", (e) => {
+    if (e.target.closest?.("#panel")) return; // the panel covers him there
+    const box = astroBox(scene, canvas);
+    if (e.clientX >= box.left && e.clientX < box.right && e.clientY >= box.top && e.clientY < box.bottom) petAt = performance.now();
+  });
+
+  return {
+    at(now) {
+      const petAge = (now - petAt) / 1000;
+      if (petAge >= 0 && petAge < scene.petLength) return { kind: "pet", age: petAge };
+      if (buttonAt !== null) return { kind: "button", age: Math.max(0, now - buttonAt) / 1000, faceLeft };
+      return null;
+    },
+  };
+}
+
+// Astro's sprite box on screen, in CSS pixels.
+function astroBox(scene, canvas) {
+  const rect = canvas.getBoundingClientRect();
+  const s = rect.width / scene.W;
+  return {
+    left: rect.left + scene.astro.x0 * s,
+    right: rect.left + scene.astro.x1 * s,
+    top: rect.top + scene.astro.y0 * s,
+    bottom: rect.top + scene.astro.y1 * s,
+  };
+}
+
+function centreX(box) {
+  return (box.left + box.right) / 2;
 }
 
 // Scene time runs on the wall clock and is kept for the tab, so the scene carries on across page

@@ -7,7 +7,7 @@
 // apart from its interface: it uses its own fixed night palette instead of reading the page's
 // colours (rule 3), and it reports where Astro stands and when the delivery run happens.
 //
-// env: { astroImage: a loaded 32x32 Image of Astro, variant: "deliver" | undefined }
+// env: { astroImage: a loaded 32x32 Image of Astro, variant: "deliver" | "play" | "greet" | undefined }
 
 /* The scene's own night colours. Never read from the site's design system (rule 3). */
 const PALETTE = Object.freeze({
@@ -860,15 +860,30 @@ export function createScene(env) {
   })();
 
   function inWindow(r, a, len) { return r >= a && r < a + len; }
+  function ramp(r, a, b) { return clamp((r - a) / (b - a), 0, 1); }
+  /* how far a body column sits below its place: the rear lowered when sitting and the front in a play bow,
+     each in two steps so the belly reads as one bend; the whole body when squashed; the rear lifted by a wiggle */
+  function bodyDrop(p, col) {
+    var sitStep = col < 8 ? 2 : col < 14 ? 1 : 0, bowStep = col >= 22 ? 4 : col >= 13 ? 2 : 0;
+    return Math.round(p.sit * sitStep) + Math.round(p.bow * bowStep) + p.squash - (col < 12 ? p.wiggle : 0);
+  }
   function hopAt(r) {
     for (var i = 0; i < HOPS.length; i++) { var s = (r - HOPS[i].t) / HOP_LEN; if (s >= 0 && s < 1) return { h: Math.round(HOPS[i].h * Math.sin(Math.PI * s)), s: s }; }
     return null;
   }
   function walkX(r) { return r < PL.back ? AX + PL.v * (r - PL.walk) : W + 2 - (W + 2 - AX) * (r - PL.back) / (PL.home - PL.back); }
 
+  /* a standing pose, facing right. squash: body pressed down (px); bow: front lowered (0..1); wiggle: rear
+     lifted (px); tongue: how far it hangs out (px); woof / heart: progress of a bark mark / a heart over
+     his head (0..1, -1 for none) */
+  function basePose() {
+    return { x: AX, hop: 0, sit: 0, k: [0, 0, 0, 0], hx: 0, hy: 0, dx: 0, mouth: false, blink: false, snow: 0, wag: 0.25, flip: false,
+             squash: 0, bow: 0, wiggle: 0, tongue: 0, woof: -1, heart: -1 };
+  }
+
   /* the pose at routine time r; null while he is off screen */
   function playPose(r) {
-    var p = { x: AX, hop: 0, sit: 0, k: [0, 0, 0, 0], hx: 0, hy: 0, dx: 0, mouth: false, blink: false, snow: 0, wag: 0.25, flip: false };
+    var p = basePose();
     var i;
     if (r < PL.sit) {
       for (i = 0; i < BARKS.length; i++) if (inWindow(r, BARKS[i], 0.22)) p.mouth = true;
@@ -908,35 +923,50 @@ export function createScene(env) {
     g.clearRect(0, 0, PLAYC.cv.width, PLAYC.cv.height);
     var w = TAIL_WAG[Math.floor(r / p.wag) % 6];
     if (sat) g.drawImage(A.tail, O + 1 + w[0], O + 16 + Math.abs(w[1]));    /* tail low behind him, sweeping */
-    else g.drawImage(A.tail, O + 2 + w[0] + p.dx, by + 8 + w[1]);
+    else g.drawImage(A.tail, O + 2 + w[0] + p.dx, by + 8 + w[1] + bodyDrop(p, 4));   /* moves with the rear */
     var order = [1, 3, 0, 2];
+    var lift = p.wiggle - p.squash;                                           /* how far the rear is lifted off the hind legs */
     for (i = 0; i < 4; i++) {
-      var leg = order[i];
+      var leg = order[i], L = LEG[leg];
       if (sat && leg < 2) continue;
       drawLeg(g, leg, p.k[leg], O, by);
+      if (leg < 2 && lift > 0) g.drawImage(A.legs[leg], 0, 0, L.w, 1, O + L.x, by + L.y - lift, L.w, lift);  /* the leg's top row stretched up to the body */
     }
-    if (sat) for (i = 0; i < 2; i++) { var L = LEG[i]; g.drawImage(A.legs[i], 0, L.h - 2, L.w, 2, O + L.x + 1, O + 28, L.w, 2); }  /* folded hind paws */
-    /* body, the rear lowered when sitting (each column shifted down a little more towards the tail) */
-    for (var col = 0; col < 32; col++) {
-      var off = Math.round(3 * p.sit * Math.max(0, 16 - col) / 16);
-      g.drawImage(A.body, col, 0, 1, 32, O + col + p.dx, by + off, 1, 32);
+    /* sitting, the hind legs fold under him: only their lower part shows, reaching from the lowered rear to the ground */
+    if (sat) for (i = 0; i < 2; i++) {
+      L = LEG[i];
+      var fold = Math.min(L.h, 30 - L.y - bodyDrop(p, L.x));
+      g.drawImage(A.legs[i], 0, L.h - fold, L.w, fold, O + L.x + 1, by + 30 - fold, L.w, fold);
     }
-    var hx = O + HEAD.x + p.hx + p.dx, hy = by + HEAD.y + p.hy;
+    /* body, one column at a time (see bodyDrop); the belly hides the tops of the legs where it is lowered */
+    for (var col = 0; col < 32; col++) g.drawImage(A.body, col, 0, 1, 32, O + col + p.dx, by + bodyDrop(p, col), 1, 32);
+    var hx = O + HEAD.x + p.hx + p.dx, hy = by + HEAD.y + p.hy + p.squash;
     g.drawImage(A.head, hx, hy);
+    /* never see-through: where the head has moved up off the body, its bottom row is stretched down to
+       the body; where it leans forward, its first column is repeated back to the neck */
+    for (col = 0; col < HEAD.w; col++) {
+      var under = HEAD.x + p.hx + col;                                        /* the body column below this head column */
+      if (under > 31) continue;
+      var gap = bodyDrop(p, under) - p.squash - p.hy;
+      if (gap > 0) g.drawImage(A.head, col, HEAD.h - 1, 1, 1, hx + col, hy + HEAD.h, 1, gap);
+    }
+    for (i = 1; i <= p.hx; i++) g.drawImage(A.head, 0, 0, 1, HEAD.h, hx - i, hy, 1, HEAD.h);
     var fx = hx - HEAD.x, fy = hy - HEAD.y;                                   /* sprite origin of the face */
-    if (p.mouth) { P(g, MOUTH, fx + 23, fy + 15); P(g, MOUTH, fx + 24, fy + 15); P(g, MOUTH, fx + 25, fy + 15); P(g, TONGUE, fx + 24, fy + 16); }
-    if (p.blink) { P(g, A.furA, fx + 20, fy + 11); P(g, A.furB, fx + 26, fy + 11); }
+    var F = function (col, x, y) { P(g, col, fx + x, fy + y); };
+    if (p.mouth || p.tongue) { F(MOUTH, 23, 15); F(MOUTH, 24, 15); F(MOUTH, 25, 15); F(TONGUE, 24, 16); }
+    if (p.tongue > 1) F(TONGUE, 24, 17);                                      /* panting: it hangs a pixel lower */
+    if (p.blink) { F(A.furA, 20, 11); F(A.furB, 26, 11); }
     var n = Math.floor(p.snow * SNOWPTS.length);
     for (i = 0; i < n; i++) {
       var s = SNOWPTS[i];
       /* a white lump with a blue-grey underside, so it shows on his white fur too */
-      var sx = s[2] ? fx + s[0] : O + s[0] + p.dx, sy = s[2] ? fy + s[1] : by + s[1] + Math.round(3 * p.sit * Math.max(0, 16 - s[0]) / 16);
+      var sx = s[2] ? fx + s[0] : O + s[0] + p.dx, sy = s[2] ? fy + s[1] : by + s[1] + bodyDrop(p, s[0]);
       P(g, SNOW_SHADE, sx, sy + 1); P(g, SNOW_SHADE, sx + 1, sy + 1); P(g, INK, sx, sy); P(g, INK, sx + 1, sy);
     }
     /* shadow and nose glow on the scene, then the figure */
     var air = p.hop > 2;
     ditherEllipse(c, p.x + 16, AY + 30, air ? 12 : 15, air ? 1 : 2, SUNK, air ? 0.32 : 0.55);
-    var noseX = p.x + 25 + p.hx + p.dx, noseY = AY + 13 + p.hy - p.hop;
+    var noseX = p.x + 25 + p.hx + p.dx, noseY = AY + 13 + p.hy + p.squash - p.hop;
     if (p.flip) noseX = p.x + 32 - (noseX - p.x);
     putGlow(c, G_NOSE[1], noseX, noseY, 1);
     if (p.flip) { c.save(); c.translate(2 * p.x + 32, 0); c.scale(-1, 1); c.drawImage(PLAYC.cv, p.x - O, AY - O); c.restore(); }
@@ -990,7 +1020,103 @@ export function createScene(env) {
     drawPlayEffects(c, r, p);
   }
 
-  function drawActor(c, t, r) {
+  /* ---------------- the greeting (variant 'greet'): the landing page ----------------
+     Runs on the routine clock like 'play', but he never leaves his spot: a puppy happy to see you
+     stays with you. He spots you and hops for joy with two barks, then loops: panting, a curious
+     "huh?", a play bow with barks, a spin after his tail, a sit. A reaction (the page's main
+     button hovered or focused, or a click on him) replaces the routine while it lasts. */
+  var GREET = env.variant === "greet";
+  var GR = { hello: 3.0, loop: 14, pet: 1.1 };
+  var HEART = [".#.#.", "#####", "#####", ".###.", "..#.."];
+
+  /* progress of the bark mark started at one of these times, or -1 */
+  function woofAt(r, times) {
+    for (var i = 0; i < times.length; i++) { var s = (r - times[i]) / 0.4; if (s >= 0 && s < 1) return s; }
+    return -1;
+  }
+  function pant(r, p) { p.tongue = Math.floor(r / 0.18) % 2 ? 2 : 1; p.hy += Math.floor(r / 0.36) % 2; p.wag = 0.1; }
+  /* "huh?": the head goes a pixel up and a pixel back between a and b */
+  function huh(u, a, b, p) { var h = Math.round(Math.min(ramp(u, a, a + 0.15), 1 - ramp(u, b - 0.2, b))); p.hx -= h; p.hy -= h; }
+
+  /* the first 3 s: nose in the snow, head up (he has seen you), a crouch, then hops for joy */
+  function greetHello(r, p) {
+    p.wag = 0.06; p.woof = woofAt(r, [0.8, 1.6]);
+    if (r < 0.4) { p.hy = 2; p.wag = 0.25; }
+    else if (r < 0.55) p.hy = -1;
+    else if (r < 0.7) { p.hy = -1; p.squash = 1; }
+    else if (r < 2.3) {
+      p.hop = Math.round(4 * Math.sin(Math.PI * ((r - 0.7) % 0.4) / 0.4)); p.hy = -1; p.tongue = 1;
+      if (p.hop > 1) p.k = [-2, -1, 2, 1]; else if (r > 1.0) p.squash = 1;   /* squashed on each landing */
+    } else { p.squash = r < 2.4 ? 1 : 0; pant(r, p); }
+  }
+
+  /* the 14 s loop after the hello, u seconds in */
+  function greetLoop(u, p) {
+    if (u < 2.0) { pant(u, p); p.blink = inWindow(u, 1.2, 0.14); }
+    else if (u < 3.4) { huh(u, 2.0, 3.4, p); p.wag = 0.2; p.blink = inWindow(u, 2.7, 0.14); }
+    else if (u < 6.4) {                                                   /* play bow, rear wiggling */
+      p.bow = Math.min(ramp(u, 3.4, 3.65), 1 - ramp(u, 6.1, 6.4));
+      p.hx = p.bow > 0.5 ? 1 : 0; p.hy = Math.round(4 * p.bow);
+      p.k = [0, 0, Math.round(3 * p.bow), Math.round(2 * p.bow)];
+      p.wiggle = p.bow > 0.9 && Math.floor(u * 8) % 2 ? 1 : 0; p.wag = 0.05;
+      p.woof = woofAt(u, [4.5, 5.0]);
+    } else if (u < 7.0) pant(u, p);
+    else if (u < 8.6) {                                                   /* round and round after his tail */
+      var n = Math.floor((u - 7.0) / 0.2);
+      p.flip = n % 2 === 1; p.hop = Math.round(2 * Math.sin(Math.PI * ((u - 7.0) % 0.2) / 0.2)); p.wag = 0.04; p.tongue = 1;
+    } else if (u < 9.2) { p.blink = true; p.dx = Math.floor(u * 5) % 2; } /* a little dizzy */
+    else {
+      p.sit = Math.min(ramp(u, 9.2, 9.6), 1 - ramp(u, 13.4, 13.75)); p.hy = -Math.round(p.sit);
+      pant(u, p); p.wag = 0.45; huh(u, 11.4, 12.3, p);
+      p.blink = inWindow(u, 10.6, 0.14) || inWindow(u, 12.8, 0.14);
+    }
+  }
+
+  /* a: { kind: "pet", age } after a click on him, or { kind: "button", age, faceLeft } while the button is hovered */
+  function greetReaction(a, p) {
+    var s = a.age;
+    if (a.kind === "pet") {                                               /* a big hop, a bark, a heart */
+      p.woof = woofAt(s, [0.15]); p.heart = ramp(s, 0.25, GR.pet); p.wag = 0.04;
+      if (s < 0.1 || (s >= 0.55 && s < 0.65)) p.squash = 1;
+      else if (s < 0.55) { p.hop = Math.round(6 * Math.sin(Math.PI * (s - 0.1) / 0.45)); p.k = [-3, -2, 3, 2]; p.hy = -1; }
+      else { pant(s, p); p.blink = true; }
+      return;
+    }
+    p.flip = a.faceLeft; p.wag = 0.05; p.tongue = 1; p.hy = -1;           /* faces the button and bounces */
+    p.woof = woofAt(s, [0.12]);
+    if (s < 0.12) p.squash = 1;
+    else { p.hop = Math.round(3 * Math.sin(Math.PI * ((s - 0.12) % 0.36) / 0.36)); if (p.hop > 1) p.k = [-2, -1, 2, 1]; else p.squash = 1; }
+  }
+
+  function drawWoof(c, p, s) {
+    c.globalAlpha = 1 - s;
+    for (var k = -1; k <= 1; k++) for (var d = 0; d < 3; d++) {
+      var x = Math.round(p.x + 33 + 4 * s + d), y = Math.round(AY + 13 + p.hy - p.hop + k * (2 + d + 3 * s) * 0.6);
+      P(c, INK, p.flip ? 2 * p.x + 31 - x : x, y);
+    }
+    c.globalAlpha = 1;
+  }
+  function drawHeart(c, p, s) {
+    c.globalAlpha = s < 0.7 ? 1 : (1 - s) / 0.3;
+    var x = p.x + 18, y = Math.round(AY - 6 - 10 * s);
+    for (var j = 0; j < HEART.length; j++) for (var i = 0; i < 5; i++) if (HEART[j].charAt(i) === "#") P(c, HOLLY, x + i, y + j);
+    c.globalAlpha = 1;
+  }
+
+  function drawGreet(c, r, a) {
+    var p = basePose();
+    r = Math.max(0, r);                                                     /* the first frame can be stamped just before the routine started */
+    if (a) greetReaction(a, p);
+    else if (r < GR.hello) greetHello(r, p);
+    else greetLoop((r - GR.hello) % GR.loop, p);
+    if (p.woof >= 0 && p.woof < 0.55) p.mouth = true;
+    drawPlayAstro(c, a ? r + a.age : r, p);                                /* the routine is paused during a reaction; the tail keeps going */
+    if (p.woof >= 0) drawWoof(c, p, p.woof);
+    if (p.heart > 0 && p.heart < 1) drawHeart(c, p, p.heart);
+  }
+
+  function drawActor(c, t, r, a) {
+    if (GREET) { drawGreet(c, r === undefined ? t : r, a); return; }
     if (PLAY) { drawPlay(c, r === undefined ? t : r); return; }
     if (!DELIVER) { drawAstro(c, t); return; }
     if (t >= RUN.t0 && t < RUN.t0 + RUN.tauEnd) { drawAstroRun(c, t); return; }
@@ -1003,8 +1129,8 @@ export function createScene(env) {
   }
 
   /* ------------------------------------------------------------------ frame */
-  /* t: scene loop time. r: the play routine's own time (variant 'play' only). */
-  function render(c, t, r) {
+  /* t: scene loop time. r: the routine's own time (variants 'play' and 'greet'). a: a reaction ('greet' only). */
+  function render(c, t, r, a) {
     t = ((t % T) + T) % T;
     c.imageSmoothingEnabled = false; c.globalAlpha = 1;
     c.drawImage(sky.cv, 0, 0);
@@ -1023,7 +1149,7 @@ export function createScene(env) {
     drawGlitter(c, t);
     drawFlakes(c, t, 1);
     if (DELIVER) { drawPuffs(c, t); drawTrail(c, t); }
-    drawActor(c, t, r);
+    drawActor(c, t, r, a);
     if (DELIVER) drawReturn(c, t);
     c.drawImage(front.cv, 0, 0);
     drawFlakes(c, t, 2);
@@ -1033,8 +1159,9 @@ export function createScene(env) {
 
   return {
     W: W, H: H, T: T, render: render, focusX: AX + 16,
-    astro: { x0: AX, x1: AX + 32 },                                        /* Astro's sprite box, in scene pixels */
+    astro: { x0: AX, x1: AX + 32, y0: AY, y1: AY + 32 },                   /* Astro's sprite box, in scene pixels */
     delivery: DELIVER ? { dash: RUN.t0, gone: RUN.t0 + RUN.tauEnd } : null, /* when he dashes off, and when he has left the screen */
-    play: PLAY ? { length: PL.T, still: 6.5 } : null                        /* the routine's loop, and its still frame (sitting) */
+    routine: PLAY ? { still: 6.5 } : GREET ? { still: GR.hello + 11 } : null, /* the routine's still frame (sitting) */
+    petLength: GR.pet                                                       /* how long his reaction to a click lasts ('greet') */
   };
 }

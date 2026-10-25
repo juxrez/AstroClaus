@@ -4,7 +4,7 @@
 @{
     ViewData["Title"] = "Write a letter to Santa";
     // Astro greets whoever arrives; on phones he shows in a window above the panel (design/DESIGN.md §2, rules 2 and 13).
-    ViewData["Diorama"] = "play";
+    ViewData["Diorama"] = "greet";
     ViewData["SceneWindow"] = true;
 }
 
@@ -15,7 +15,8 @@
         <h1 class="hero-title rise" style="--i: 1">Write a letter to Santa</h1>
         <p class="body-lg rise" style="--i: 2">Tell him what you wish for, and Astro will carry your letter north. No account needed.</p>
         <div class="landing-actions rise" style="--i: 3">
-            <a class="btn btn-primary" href="/write">
+            @* Astro faces this button and bounces while it is hovered or focused (js/diorama) *@
+            <a class="btn btn-primary" href="/write" data-astro-reacts>
                 <span class="icon icon-write" aria-hidden="true"></span>
                 Write my letter
             </a>
