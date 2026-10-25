@@ -3,6 +3,8 @@
 @using AstroClaus.API.Features.Letters
 @{
     ViewData["Title"] = "Write your letter";
+    // Astro sits and waits while the letter is written (design/DESIGN.md §2, rule 2).
+    ViewData["Diorama"] = "wait";
 }
 
 @section HeaderStart {
@@ -14,7 +16,8 @@
 
 @* The header (layout) and the action bar stay put; the middle scrolls between them (design/DESIGN.md §4) *@
 <section class="page create-page">
-    <form method="post" enctype="multipart/form-data" id="letter-form" class="create-form"
+    @* data-astro-watches: typing here makes Astro look up, and keeps him awake (js/diorama) *@
+    <form method="post" enctype="multipart/form-data" id="letter-form" class="create-form" data-astro-watches
           data-max-wishes="@LetterLimits.MaxWishes" data-max-images="@LetterLimits.MaxImagesPerWish" data-max-image-bytes="@LetterLimits.MaxImageBytes">
         <div class="create-middle">
             <div class="create-intro">
@@ -82,3 +85,13 @@
         </div>
     </form>
 </section>
+
+@* When a letter can't be sent, the page stays as it was and this explains, without the server's
+   details (design/DESIGN.md §2, rule 6). To try again, Send to Santa is right there. *@
+<dialog class="modal" id="send-failed" aria-labelledby="send-failed-title">
+    <div class="modal-body">
+        <h2 class="title" id="send-failed-title">Astro couldn't get through</h2>
+        <p class="body">We're having trouble delivering your letter. It's safe here, so please try again later.</p>
+        <button type="button" class="btn btn-secondary" data-close-modal>Close</button>
+    </div>
+</dialog>

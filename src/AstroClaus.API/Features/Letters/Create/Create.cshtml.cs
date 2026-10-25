@@ -47,7 +47,7 @@ public class CreateModel(ILetterStore store) : PageModel
         {
             if (file.Length > LetterLimits.MaxImageBytes)
             {
-                ModelState.AddModelError("", $"A picture for \"{wish.Name}\" is over {LetterLimits.MaxImageKb} KB. Try a screenshot instead.");
+                ModelState.AddModelError("", $"A picture for \"{wish.Name}\" is over {LetterLimits.MaxImageMb} MB. Try a different picture.");
                 continue;
             }
 

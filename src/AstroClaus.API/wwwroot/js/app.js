@@ -5,6 +5,9 @@
 // diorama (js/diorama).
 
 import { startDiorama } from "./diorama/diorama.js";
+import { shrinkPicture } from "./shrink-picture.js";
+
+const SEND_TIMEOUT_MS = 60000; // a letter not sent by then counts as failed (DESIGN.md §2, rule 6)
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -93,8 +96,12 @@ function initShare() {
 }
 
 // ---- Create letter form ----------------------------------------------------
-// onSend: called as the letter is sent, so the diorama comes to the front while it saves.
-function initCreateForm(onSend) {
+// onSend({ from, message }): called as the letter is sent; the letter flies to Astro, and the
+// returned promise resolves once he has caught it.
+// onAdd: called when a wish or a picture is added, so Astro can hop for joy.
+// onFail: called when the letter couldn't be sent; it comes back, and the promise resolves as the
+// form comes back in.
+function initCreateForm({ onSend, onAdd, onFail }) {
   const form = $("#letter-form");
   if (!form) return;
 
@@ -140,6 +147,7 @@ function initCreateForm(onSend) {
     showPictures(row);
     refresh();
     $("input[type=text]", row).focus();
+    onAdd();
   });
 
   list.addEventListener("click", async (e) => {
@@ -190,27 +198,39 @@ function initCreateForm(onSend) {
     $("[data-remove-picture]", slot).setAttribute("aria-label", file ? `Remove picture ${file.name}` : "Remove picture");
   };
 
-  // Refuse anything over the limit before it is uploaded
-  list.addEventListener("change", (e) => {
-    const input = e.target.closest("[data-image]");
-    if (!input) return;
-    let file = input.files[0];
-    imageError.hidden = true;
+  // A picked picture is shrunk first (shrink-picture.js), and refused only if it is still over the
+  // limit. Send waits for any still being shrunk.
+  const shrinking = new Set();
+  const pick = async (input) => {
+    const picked = input.files[0];
+    let file = picked && await shrinkPicture(picked, maxImageBytes);
+    if (input.files[0] !== picked) return; // another picture was picked meanwhile; that one counts
+    if (file !== picked && !setFile(input, file)) file = picked;
 
     if (file && file.size > maxImageBytes) {
       input.value = "";
-      imageError.textContent = `${file.name} is over ${maxImageBytes / 1024} KB. Try a screenshot instead.`;
+      imageError.textContent = `${picked.name} is too big. Try a different picture.`;
       imageError.hidden = false;
       file = null;
     }
     setThumbnail(input.closest("[data-picture-slot]"), file);
     showPictures(input.closest("[data-wish]"));
+    if (file) onAdd();
+  };
+  list.addEventListener("change", async (e) => {
+    const input = e.target.closest("[data-image]");
+    if (!input) return;
+    imageError.hidden = true;
+    const job = pick(input);
+    shrinking.add(job);
+    await job;
+    shrinking.delete(job);
   });
 
   rows().forEach(showPictures);
 
   // Sending: the button says so at once, and the letter can't be sent twice (a double click, or
-  // Enter in a field while it saves). data-sending on <html> also shows the sending card (site.css).
+  // Enter in a field while it saves). data-sending on <html> also hurries the panel's fade (site.css).
   const send = $("#send");
   const sendLabel = $("[data-label]", send);
   const sendText = sendLabel.textContent;
@@ -222,23 +242,68 @@ function initCreateForm(onSend) {
     sendLabel.textContent = sending ? "Sending…" : sendText;
   };
 
-  // The server reads wishes as a gap-free list, so number them just before sending
-  form.addEventListener("submit", (e) => {
-    if (form.hasAttribute("data-sending")) {
-      e.preventDefault();
-      return;
-    }
+  // The letter uploads in the background while it flies to Astro (no flight with reduced motion), and
+  // the letter page opens once both are done. If it can't be sent, nothing is lost: the letter comes
+  // back and a modal says so, without the server's details (DESIGN.md §2, rule 6). The server reads
+  // wishes as a gap-free list, so they are numbered just before sending.
+  const failed = $("#send-failed");
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (form.hasAttribute("data-sending")) return;
     setSending(true);
+    await Promise.all(shrinking);
     rows().forEach((row, i) => {
       $$("[name]", row).forEach((el) => (el.name = el.name.replace(/Wishes\[[^\]]*\]/, `Wishes[${i}]`)));
     });
-    onSend();
+    const flying = !matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const caught = flying ? onSend({ from: from.value.trim(), message: message.value.trim() }) : null;
+    const [letterPage] = await Promise.all([upload(form), caught]);
+    if (letterPage) {
+      location.assign(letterPage);
+      return;
+    }
+    await onFail();
+    setSending(false);
+    failed.showModal();
   });
 
   // Back from the letter page, the browser shows this page as it was left: ready to send again
   addEventListener("pageshow", (e) => { if (e.persisted) setSending(false); });
 
   refresh();
+}
+
+// Sends the letter. Resolves with the address of its letter page, or null if it wasn't sent: no
+// answer within SEND_TIMEOUT_MS, no connection, or any answer but the letter page (a server error,
+// or something in the letter it refused).
+async function upload(form) {
+  try {
+    const response = await fetch(form.action, { method: "POST", body: new FormData(form), signal: AbortSignal.timeout(SEND_TIMEOUT_MS) });
+    if (response.ok && response.redirected && new URL(response.url).pathname.startsWith("/letter/")) return response.url;
+    console.error(`The letter wasn't sent: the server answered ${response.status} at ${new URL(response.url).pathname}`);
+  } catch (error) {
+    console.error("The letter wasn't sent", error);
+  }
+  return null;
+}
+
+// Only the page change after Send crossfades (site.css); every other page change stays a plain cut.
+function keepPageChangesPlain() {
+  addEventListener("pageswap", (e) => {
+    if (e.viewTransition && !document.documentElement.hasAttribute("data-letter-caught")) e.viewTransition.skipTransition();
+  });
+}
+
+// Puts a file in a file field in place of the one picked. False where the browser doesn't allow it.
+function setFile(input, file) {
+  try {
+    const transfer = new DataTransfer();
+    transfer.items.add(file);
+    input.files = transfer.files;
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 // Removed wish cards and pictures fade out before they go (DESIGN.md §4); with reduced motion, at once.
@@ -254,4 +319,5 @@ forgetJustSent();
 initModals();
 initPictureModal();
 initShare();
-initCreateForm(diorama.bringToFront);
+initCreateForm({ onSend: diorama.sendLetter, onAdd: diorama.cheer, onFail: diorama.returnLetter });
+keepPageChangesPlain();

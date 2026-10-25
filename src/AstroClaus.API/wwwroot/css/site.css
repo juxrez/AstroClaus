@@ -113,16 +113,19 @@ body {
   transition: opacity 600ms ease;
 }
 
-/* The scene in front: the content fades out and can't be reached until it comes back (§2, rules 5–7) */
+/* The scene in front: the content fades out and can't be reached until it comes back (§2, rules 5–7).
+   On Send it goes quicker, as the letter lifts out of it (below). */
 [data-diorama-front] .panel {
   opacity: 0;
   visibility: hidden;
   transition: opacity 800ms ease, visibility 0s 800ms;
 }
+[data-sending][data-diorama-front] .panel { transition: opacity 300ms ease, visibility 0s 300ms; }
 
 /* The sending card (§2, rule 6): while a letter is on its way the scene is in front, and this card
-   says what is happening, in the left half where the panel was. It shows after Send on Create
-   (data-sending) and on the letter page until Astro has run off (the delivery scene). */
+   says what is happening, in the left half where the panel was. On Create it comes in once Astro has
+   caught the letter (data-letter-caught); on the letter page it is there from the start, and goes
+   just before the letter rises in. It keeps its place through the page change between them. */
 .sending-card {
   position: fixed;
   inset: 0 50% 0 0;
@@ -132,13 +135,65 @@ body {
   pointer-events: none;
   opacity: 0;
   visibility: hidden;
-  transition: opacity 400ms ease, visibility 0s 400ms;
+  transition: opacity 250ms ease, visibility 0s 250ms;
+  view-transition-name: sending-card;
 }
-:root[data-diorama-front]:is([data-sending], [data-diorama="delivery"]) .sending-card {
+:root[data-diorama-front]:is([data-letter-caught], [data-diorama="delivery"]) .sending-card {
   opacity: 1;
   visibility: visible;
-  transition: opacity 400ms ease 300ms, visibility 0s; /* comes in as the panel goes */
+  transition: opacity 300ms ease, visibility 0s;
 }
+/* The end of the delivery: the card goes first, then the letter comes in (the entrances below wait too) */
+:root[data-diorama="delivery"] { --after-card: 200ms; }
+:root:not([data-diorama-front]) .panel { transition-delay: var(--after-card, 0ms); }
+
+/* Send: the letter folds into an envelope and flies to Astro (§2, rule 6; js/diorama/letter-flight.js).
+   A 200x420 sheet folded in three is 200x140, the envelope's 10x7 pixels at 20px each. */
+.letter-flight { position: fixed; inset: 0; z-index: 20; overflow: hidden; pointer-events: none; }
+.flight-sheet { position: absolute; width: 200px; height: 420px; }
+.flight-flap { position: absolute; left: 0; width: 100%; height: 140px; transform-style: preserve-3d; }
+.flight-flap-top { top: 0; z-index: 3; transform-origin: 50% 100%; }
+.flight-flap-middle { top: 140px; z-index: 1; }
+.flight-flap-bottom { top: 280px; z-index: 2; transform-origin: 50% 0; }
+.flight-face { position: absolute; inset: 0; overflow: hidden; background: var(--paper); backface-visibility: hidden; }
+.flight-face-back { background: color-mix(in srgb, var(--paper), var(--paper-line) 60%); transform: rotateX(180deg); }
+.flight-flap-top .flight-face { border-radius: var(--radius-md) var(--radius-md) 0 0; }
+.flight-flap-bottom .flight-face { border-radius: 0 0 var(--radius-md) var(--radius-md); }
+.flight-flap-middle .flight-face { box-shadow: var(--shadow-md); }
+.flight-content {
+  position: absolute;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 200px;
+  height: 420px;
+  padding: 20px 18px;
+  color: var(--on-paper);
+}
+.flight-dear { font: 500 18px/24px var(--font-display); }
+.flight-words {
+  flex: 1;
+  overflow: hidden;
+  font: 400 16px/24px var(--font-hand);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  background: repeating-linear-gradient(to bottom, transparent 0 23px, var(--paper-line) 23px 24px);
+}
+.flight-love { font: 400 16px/24px var(--font-hand); text-align: right; }
+.flight-envelope { position: absolute; left: 0; top: 0; width: 200px; height: 140px; transform-origin: 0 0; }
+.flight-pixels { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; }
+.flight-seal { transform-origin: 50% 57%; }
+
+/* The page change after Send crossfades instead of cutting (browsers without cross-document view
+   transitions keep the cut). Every other page change skips it (app.js). The scene's old picture stays
+   under the new one until the new page has drawn its own, so the sky never blinks. The new one is laid
+   over it plainly: the browser's own crossfade adds the two pictures together (plus-lighter), which
+   with the old one held at full strength flashes the screen twice as bright. */
+@view-transition { navigation: auto; }
+.diorama canvas { view-transition-name: diorama; }
+::view-transition-old(diorama) { animation: none; mix-blend-mode: normal; }
+::view-transition-new(diorama) { animation: fade-in 400ms ease both; mix-blend-mode: normal; }
 .sending-card p {
   display: flex;
   align-items: center;
@@ -522,10 +577,13 @@ body {
    starts as the panel fades in. With reduced motion they only fade. */
 @keyframes rise-in { from { opacity: 0; transform: translateY(16px); } }
 @keyframes fade-in { from { opacity: 0; } }
-:root:not([data-diorama-front]) .letter-page .paper { animation: rise-in 400ms var(--ease-out) both; }
+:root:not([data-diorama-front]) .letter-page .paper {
+  animation: rise-in 400ms var(--ease-out) both;
+  animation-delay: var(--after-card, 0ms);
+}
 :root:not([data-diorama-front]) .wish-card {
   animation: rise-in 300ms var(--ease-out) both;
-  animation-delay: calc(150ms + min(var(--i), 8) * 50ms);
+  animation-delay: calc(var(--after-card, 0ms) + 150ms + min(var(--i), 8) * 50ms);
 }
 /* Landing: each .rise piece in turn, --i being its place in the order */
 :root:not([data-diorama-front]) .rise {

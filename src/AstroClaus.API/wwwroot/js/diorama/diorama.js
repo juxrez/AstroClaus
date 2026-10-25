@@ -2,13 +2,14 @@
 // sits in front of it (design/DESIGN.md §2). The drawing itself lives in scene.js.
 //
 // Two attributes on <html> carry the state, and CSS does the fading:
-//   data-diorama="plain" | "delivery" | "play" | "greet"   which version of the scene this page shows (set by the server)
+//   data-diorama="plain" | "delivery" | "play" | "greet" | "wait"   which version of the scene this page shows (set by the server)
 //   data-diorama-front                  the scene is in front and the content is faded out
 //
 // The inline script in _Layout sets data-diorama-front before the first paint (first arrival in the
 // tab, or a letter just sent). startDiorama() takes over from it.
 
 import { createScene } from "./scene.js";
+import { flyLetter, CATCH_MS } from "./letter-flight.js";
 
 const OPENING_MS = 3000;           // rule 5: on first arrival the scene plays alone for 3 s
 const DELIVERY_LEAD_S = 3;         // rule 6: the delivery starts about 3 s before Astro dashes off...
@@ -17,38 +18,102 @@ const STILL_PLAIN_S = 10.4;        // rule 9: the frame shown instead of the loo
 const MAX_EXTRA_ZOOM = 2;          // how many scale steps framing may add to keep Astro clear of the panel
 const CLOCK_KEY = "diorama:clock"; // sessionStorage: wall-clock ms at which scene time was 0 (rule 8)
 const CONTROL_EVENT = "diorama:control"; // tells the inline script in _Layout to stand down
+const SLEEP_AFTER_MS = 20000;      // Create: with no typing (or adding) for this long, Astro falls asleep...
+const HUH_EVERY_MS = 4000;         // ...typing makes him look up at most this often...
+const TYPING_MS = 1500;            // ...and counts as "still typing" for this long after a key press
+const CATCH_SLACK_MS = 100;        // Send: the flight starts a frame or so after Send, so its end is a little later than planned
+const RETURN_MS = 400;             // a letter that couldn't be sent: the card goes and Astro puts it down before the content comes back
 
 const ASTRO_SPRITE = new URL("../../assets/diorama/astro.png", import.meta.url);
 const FRONT = "data-diorama-front";
+const CAUGHT = "data-letter-caught"; // Create: Astro has caught the letter, so the sending card shows
 
 const root = document.documentElement;
 const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
 
 /**
  * Starts the diorama on this page. Never throws: if anything fails, the content is shown.
- * @returns {{ contentShown: Promise<void>, bringToFront: () => void }}
+ * @returns {{ contentShown: Promise<void>, sendLetter: (letter: { from: string, message: string }) => Promise<void>, cheer: () => void }}
  *   contentShown resolves the first time the page content is visible.
- *   bringToFront fades the content out so the scene is in front (Send, rule 6).
+ *   sendLetter (Create, rule 6): the content fades out, and the letter folds into an envelope and flies
+ *     to Astro. Resolves once he has caught it.
+ *   returnLetter (Create, rule 6): the letter couldn't be sent, so it comes back. Resolves as the
+ *     content comes back in.
+ *   cheer: something was added to the letter (Create), and Astro hops for joy.
  */
 export function startDiorama() {
   document.dispatchEvent(new Event(CONTROL_EVENT));
   const content = createContent();
+  // Recorded from the start, so nothing the visitor does is missed while the scene loads
+  const waiting = root.dataset.diorama === "wait" ? createWaiting() : null;
 
   // Back from the letter page restores this page as it was left after Send: content faded out.
-  addEventListener("pageshow", (e) => { if (e.persisted) content.show(); });
+  addEventListener("pageshow", (e) => {
+    if (!e.persisted) return;
+    content.show();
+    waiting?.reset();
+    root.removeAttribute(CAUGHT);
+  });
 
-  start(content).catch((error) => {
+  const ready = start(content, waiting);
+  ready.catch((error) => {
     console.error("Diorama failed to start", error);
     content.show();
   });
 
   return {
     contentShown: content.shown,
-    bringToFront: () => { if (!reducedMotion.matches) content.hide(); },
+    sendLetter: (letter) => sendLetter(letter, content, waiting, ready),
+    returnLetter: () => returnLetter(content, waiting),
+    cheer: () => waiting?.cheer(),
   };
 }
 
-async function start(content) {
+// A letter that couldn't be sent comes back (rule 6): the sending card goes, Astro puts the letter
+// down and sits to wait again, and the content comes back in. Resolves as it does. With reduced
+// motion nothing went anywhere, so it resolves at once.
+async function returnLetter(content, waiting) {
+  if (!root.hasAttribute(FRONT)) return;
+  root.removeAttribute(CAUGHT);
+  waiting?.putDown();
+  await new Promise((resolve) => setTimeout(resolve, RETURN_MS));
+  content.show();
+}
+
+// Rule 6: the panel fades as the letter lifts out of it, folds into an envelope and flies to Astro.
+// The sending card comes in once he has caught it (data-letter-caught). If the scene isn't there to
+// catch it, the letter simply goes.
+// The scene is told roughly when the catch will be, so he opens his mouth in time, and then exactly,
+// when the envelope gets there: two envelopes must never show apart.
+async function sendLetter(letter, content, waiting, ready) {
+  content.hide();
+  waiting?.send(performance.now() + CATCH_MS + CATCH_SLACK_MS);
+  try {
+    const { scene, canvas } = await ready;
+    await flyLetter(letter, visiblePart(document.getElementById("panel")), letterSpot(scene, canvas),
+      { plain: scene.letter.art(false), sealed: scene.letter.art(true) });
+  } catch (error) {
+    console.error("The letter's flight failed", error);
+  }
+  waiting?.send(performance.now());
+  root.setAttribute(CAUGHT, "");
+}
+
+// Where the envelope sits in Astro's mouth as he catches it, in CSS pixels, and a scene pixel's size
+function letterSpot(scene, canvas) {
+  const rect = canvas.getBoundingClientRect();
+  const pixel = rect.width / scene.W;
+  return { left: rect.left + scene.letter.x * pixel, top: rect.top + scene.letter.y * pixel, pixel };
+}
+
+// The part of an element that is on screen (the panel can be taller than the screen on phones)
+function visiblePart(element) {
+  const rect = element.getBoundingClientRect();
+  const top = Math.max(0, rect.top), bottom = Math.min(innerHeight, rect.bottom);
+  return { left: rect.left, width: rect.width, top, height: Math.max(0, bottom - top) };
+}
+
+async function start(content, waiting) {
   const delivering = root.dataset.diorama === "delivery";
   const playing = root.dataset.diorama === "play";
   const greeting = root.dataset.diorama === "greet";
@@ -56,17 +121,19 @@ async function start(content) {
   const panel = document.getElementById("panel");
   const sceneWindow = document.getElementById("scene-window");
 
-  const variant = delivering ? "deliver" : playing ? "play" : greeting ? "greet" : undefined;
+  const variant = delivering ? "deliver" : playing ? "play" : greeting ? "greet" : waiting ? "wait" : undefined;
   const scene = createScene({ astroImage: await loadImage(ASTRO_SPRITE), variant });
-  const startAt = delivering ? scene.delivery.dash - DELIVERY_LEAD_S : undefined;
+  // The delivery runs on its own clock from this point, while the sky carries on unbroken (rule 8)
+  const startAt = delivering ? scene.delivery.dash - DELIVERY_LEAD_S : 0;
 
   // Reframe on any change to the screen's size, including the first layout (a tab opened in the
   // background starts at 0x0, and some size changes never fire a window "resize").
   new ResizeObserver(() => frame(canvas, scene, panel, sceneWindow)).observe(canvas.parentElement);
 
-  const still = { scene: startAt ?? STILL_PLAIN_S, routine: scene.routine?.still };
-  const reactions = greeting ? createReactions(scene, canvas) : null;
-  play(canvas, scene, createClock(startAt), createRoutineClock(), reactions, still, content);
+  const still = { scene: STILL_PLAIN_S, routine: delivering ? startAt : scene.routine?.still };
+  const routine = createRoutineClock(startAt);
+  const cues = greeting ? createReactions(scene, canvas, routine) : waiting;
+  play(canvas, scene, createClock(), routine, cues, still, content);
   requestAnimationFrame(() => paintAroundScene(canvas)); // after play's first frame, queued just before
 
   if (!root.hasAttribute(FRONT)) {
@@ -76,6 +143,7 @@ async function start(content) {
   } else {
     showContentAfter(OPENING_MS, content);
   }
+  return { scene, canvas };
 }
 
 // ---- Content in front of / behind the scene -------------------------------
@@ -111,18 +179,16 @@ function showContentAfter(ms, content) {
 
 // Plays the loop, or holds one still frame while reduced motion is on (rule 9). Hidden tabs get no
 // animation frames, so the loop pauses there by itself (rule 10). routine is the routine's own
-// clock (the letter page and the landing); scenes without a routine ignore it. reactions (the
-// landing only, else null) can take over from the routine, which waits meanwhile.
-function play(canvas, scene, clock, routine, reactions, still, content) {
+// clock (the letter page, the landing and Create); scenes without a routine ignore it. cues (the
+// landing's reactions or Create's record of the visitor, else null) tell Astro what to react to.
+function play(canvas, scene, clock, routine, cues, still, content) {
   const ctx = canvas.getContext("2d", { alpha: false });
   ctx.imageSmoothingEnabled = false;
   let request = 0;
 
   const loop = (now) => {
-    const reaction = reactions?.at(now) ?? null;
-    if (reaction) routine.pause(now);
-    else routine.resume(now);
-    scene.render(ctx, clock(now), routine(now), reaction);
+    const cue = cues?.at(now) ?? null; // before reading the routine: a reaction may hold it
+    scene.render(ctx, clock(now), routine(now), cue);
     request = requestAnimationFrame(loop);
   };
   const update = () => {
@@ -139,12 +205,13 @@ function play(canvas, scene, clock, routine, reactions, still, content) {
   update();
 }
 
-// The routine starts with Astro's hello when the page opens, unlike the scene, which carries on.
-// pause/resume hold it while a reaction plays, so it carries on where it was.
-function createRoutineClock() {
+// The routine starts when the page opens (at `from` seconds: the delivery starts just before Astro's
+// hop), unlike the scene, which carries on. pause/resume hold it while a reaction plays, so it
+// carries on where it was.
+function createRoutineClock(from) {
   let startedAt = performance.now();
   let pausedAt = null;
-  const clock = (now) => ((pausedAt ?? now) - startedAt) / 1000;
+  const clock = (now) => from + ((pausedAt ?? now) - startedAt) / 1000;
   clock.pause = (now) => { pausedAt ??= now; };
   clock.resume = (now) => {
     if (pausedAt === null) return;
@@ -158,8 +225,9 @@ function createRoutineClock() {
 
 // Astro reacts to you: while the page's main button ([data-astro-reacts]) is hovered or has keyboard
 // focus he faces it and bounces, and a click or tap on him gets a hop, a bark and a heart. The button
-// itself is never held up. at(now) gives the reaction playing now, or null.
-function createReactions(scene, canvas) {
+// itself is never held up. at(now) gives the reaction playing now, or null, and holds the routine
+// while one plays so it carries on where it was.
+function createReactions(scene, canvas, routine) {
   const button = document.querySelector("[data-astro-reacts]");
   const causes = new Set(); // "pointer" and/or "focus": what keeps the button reaction going
   let buttonAt = null;
@@ -188,12 +256,70 @@ function createReactions(scene, canvas) {
     if (e.clientX >= box.left && e.clientX < box.right && e.clientY >= box.top && e.clientY < box.bottom) petAt = performance.now();
   });
 
+  const current = (now) => {
+    const petAge = (now - petAt) / 1000;
+    if (petAge >= 0 && petAge < scene.petLength) return { kind: "pet", age: petAge };
+    if (buttonAt !== null) return { kind: "button", age: Math.max(0, now - buttonAt) / 1000, faceLeft };
+    return null;
+  };
   return {
     at(now) {
-      const petAge = (now - petAt) / 1000;
-      if (petAge >= 0 && petAge < scene.petLength) return { kind: "pet", age: petAge };
-      if (buttonAt !== null) return { kind: "button", age: Math.max(0, now - buttonAt) / 1000, faceLeft };
-      return null;
+      const reaction = current(now);
+      if (reaction) routine.pause(now);
+      else routine.resume(now);
+      return reaction;
+    },
+  };
+}
+
+// ---- Waiting (Create) -----------------------------------------------------------
+
+// "Astro will wait right here": what the visitor has done, for Astro to react to. Typing in the
+// letter form ([data-astro-watches]) makes him look up now and then; with no typing or adding for
+// SLEEP_AFTER_MS he falls asleep, and the next one wakes him. cheer() comes from the form,
+// send(catchAt) from Send, with the moment he will catch the letter, and putDown() when it couldn't
+// be sent. at(now) gives the ages (seconds, Infinity for never) that scene.js reads.
+function createWaiting() {
+  let activeAt = performance.now();
+  let inputAt = -Infinity, huhAt = -Infinity, wokeAt = -Infinity, cheerAt = -Infinity, sendAt = -Infinity, catchAt = 0;
+  let returnedAt = -Infinity;
+
+  const wake = (now) => {
+    const wasAsleep = now - activeAt >= SLEEP_AFTER_MS;
+    if (wasAsleep) wokeAt = now;
+    activeAt = now;
+    return wasAsleep;
+  };
+  document.querySelector("[data-astro-watches]")?.addEventListener("input", () => {
+    const now = performance.now();
+    if (!wake(now) && now - huhAt >= HUH_EVERY_MS) huhAt = now;
+    inputAt = now;
+  });
+
+  const age = (at, now) => Math.max(0, now - at) / 1000;
+  return {
+    cheer: () => { cheerAt = performance.now(); wake(cheerAt); },
+    send: (at) => {
+      if (sendAt === -Infinity) sendAt = performance.now();
+      catchAt = at;
+    },
+    putDown: () => {
+      returnedAt = activeAt = performance.now();
+      sendAt = -Infinity;
+    },
+    // Back from the letter page: waiting again, as if the page had just opened
+    reset: () => {
+      activeAt = performance.now();
+      sendAt = cheerAt = huhAt = wokeAt = returnedAt = -Infinity;
+    },
+    at(now) {
+      const idle = now - activeAt;
+      return {
+        cheer: age(cheerAt, now), send: age(sendAt, now), catchIn: (catchAt - now) / 1000, returned: age(returnedAt, now),
+        huh: age(huhAt, now), woke: age(wokeAt, now),
+        asleep: idle >= SLEEP_AFTER_MS ? (idle - SLEEP_AFTER_MS) / 1000 : -1,
+        typing: now - inputAt < TYPING_MS,
+      };
     },
   };
 }
@@ -215,11 +341,11 @@ function centreX(box) {
 }
 
 // Scene time runs on the wall clock and is kept for the tab, so the scene carries on across page
-// loads (rule 8). startAt (seconds) restarts it at that point instead, as the delivery does.
-function createClock(startAt) {
-  let zeroAt = startAt === undefined ? readStoredNumber(CLOCK_KEY) : NaN;
+// loads (rule 8), the delivery included.
+function createClock() {
+  let zeroAt = readStoredNumber(CLOCK_KEY);
   if (!Number.isFinite(zeroAt)) {
-    zeroAt = Date.now() - (startAt ?? 0) * 1000;
+    zeroAt = Date.now();
     storeNumber(CLOCK_KEY, zeroAt);
   }
   const offsetMs = Date.now() - zeroAt - performance.now();

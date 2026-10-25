@@ -7,7 +7,7 @@
 // apart from its interface: it uses its own fixed night palette instead of reading the page's
 // colours (rule 3), and it reports where Astro stands and when the delivery run happens.
 //
-// env: { astroImage: a loaded 32x32 Image of Astro, variant: "deliver" | "play" | "greet" | undefined }
+// env: { astroImage: a loaded 32x32 Image of Astro, variant: "deliver" | "play" | "greet" | "wait" | undefined }
 
 /* The scene's own night colours. Never read from the site's design system (rule 3). */
 const PALETTE = Object.freeze({
@@ -862,10 +862,11 @@ export function createScene(env) {
   function inWindow(r, a, len) { return r >= a && r < a + len; }
   function ramp(r, a, b) { return clamp((r - a) / (b - a), 0, 1); }
   /* how far a body column sits below its place: the rear lowered when sitting and the front in a play bow,
-     each in two steps so the belly reads as one bend; the whole body when squashed; the rear lifted by a wiggle */
+     each in two steps so the belly reads as one bend; all of it when lying down or squashed; the rear
+     lifted by a wiggle */
   function bodyDrop(p, col) {
     var sitStep = col < 8 ? 2 : col < 14 ? 1 : 0, bowStep = col >= 22 ? 4 : col >= 13 ? 2 : 0;
-    return Math.round(p.sit * sitStep) + Math.round(p.bow * bowStep) + p.squash - (col < 12 ? p.wiggle : 0);
+    return Math.max(Math.round(p.sit * sitStep), Math.round(p.lie * 4)) + Math.round(p.bow * bowStep) + p.squash - (col < 12 ? p.wiggle : 0);
   }
   function hopAt(r) {
     for (var i = 0; i < HOPS.length; i++) { var s = (r - HOPS[i].t) / HOP_LEN; if (s >= 0 && s < 1) return { h: Math.round(HOPS[i].h * Math.sin(Math.PI * s)), s: s }; }
@@ -873,12 +874,13 @@ export function createScene(env) {
   }
   function walkX(r) { return r < PL.back ? AX + PL.v * (r - PL.walk) : W + 2 - (W + 2 - AX) * (r - PL.back) / (PL.home - PL.back); }
 
-  /* a standing pose, facing right. squash: body pressed down (px); bow: front lowered (0..1); wiggle: rear
-     lifted (px); tongue: how far it hangs out (px); woof / heart: progress of a bark mark / a heart over
-     his head (0..1, -1 for none) */
+  /* a standing pose, facing right. squash: body pressed down (px); bow: front lowered (0..1); lie: lying
+     down (0..1); wiggle: rear lifted (px); tongue: how far it hangs out (px); yawn: mouth wide open;
+     letter: the envelope in his mouth; woof / heart: progress of a bark mark / a heart over his head
+     (0..1, -1 for none) */
   function basePose() {
     return { x: AX, hop: 0, sit: 0, k: [0, 0, 0, 0], hx: 0, hy: 0, dx: 0, mouth: false, blink: false, snow: 0, wag: 0.25, flip: false,
-             squash: 0, bow: 0, wiggle: 0, tongue: 0, woof: -1, heart: -1 };
+             squash: 0, bow: 0, lie: 0, wiggle: 0, tongue: 0, yawn: false, letter: false, woof: -1, heart: -1 };
   }
 
   /* the pose at routine time r; null while he is off screen */
@@ -922,7 +924,7 @@ export function createScene(env) {
     var g = PLAYC.c, O = 8, by = O - p.hop, sat = p.sit >= 0.5, i;
     g.clearRect(0, 0, PLAYC.cv.width, PLAYC.cv.height);
     var w = TAIL_WAG[Math.floor(r / p.wag) % 6];
-    if (sat) g.drawImage(A.tail, O + 1 + w[0], O + 16 + Math.abs(w[1]));    /* tail low behind him, sweeping */
+    if (sat) g.drawImage(A.tail, O + 1 + w[0], by + 14 + bodyDrop(p, 4) + Math.abs(w[1]));    /* tail low behind him, sweeping */
     else g.drawImage(A.tail, O + 2 + w[0] + p.dx, by + 8 + w[1] + bodyDrop(p, 4));   /* moves with the rear */
     var order = [1, 3, 0, 2];
     var lift = p.wiggle - p.squash;                                           /* how far the rear is lifted off the hind legs */
@@ -955,7 +957,9 @@ export function createScene(env) {
     var F = function (col, x, y) { P(g, col, fx + x, fy + y); };
     if (p.mouth || p.tongue) { F(MOUTH, 23, 15); F(MOUTH, 24, 15); F(MOUTH, 25, 15); F(TONGUE, 24, 16); }
     if (p.tongue > 1) F(TONGUE, 24, 17);                                      /* panting: it hangs a pixel lower */
+    if (p.yawn) { F(MOUTH, 23, 16); F(MOUTH, 25, 16); F(TONGUE, 24, 16); F(TONGUE, 24, 17); F(MOUTH, 23, 15); F(MOUTH, 24, 15); F(MOUTH, 25, 15); }
     if (p.blink) { F(A.furA, 20, 11); F(A.furB, 26, 11); }
+    if (p.letter) drawEnvelope(g, fx + 27, fy + 14, 0, 1);                    /* held in his mouth, as on the delivery */
     var n = Math.floor(p.snow * SNOWPTS.length);
     for (i = 0; i < n; i++) {
       var s = SNOWPTS[i];
@@ -1115,23 +1119,118 @@ export function createScene(env) {
     if (p.heart > 0 && p.heart < 1) drawHeart(c, p, p.heart);
   }
 
+  /* ---------------- waiting (variant 'wait'): the Create page ----------------
+     "Astro will wait right here." He sits down and watches while the letter is written. Typing makes
+     him look up now and then; a long quiet spell sends him to sleep (a yawn, he lies down, z's) until
+     the next key press wakes him. Adding a wish or a picture gets the landing's happy hop. On Send the
+     page folds the letter into an envelope and flies it to him: he catches it and bounces with it.
+     cue (from diorama.js; ages in seconds, Infinity for never): { cheer, send, catchIn (seconds until he
+     catches the letter, negative after), huh, woke, asleep (-1 while awake), typing }. r: seconds since
+     the page opened. */
+  var WAIT = env.variant === "wait";
+  var ZED = ["###", ".#.", "###"];
+  var CALM = { cheer: Infinity, send: Infinity, catchIn: 0, returned: Infinity, huh: Infinity, woke: Infinity, asleep: -1, typing: false };
+  var PUT_DOWN = 1.2;                                                       /* how long putting a letter back down takes (s) */
+
+  /* the envelope on its own (10x7), with or without its seal, for the page to fly to him */
+  function envelopeArt(seal) {
+    var cv = mk(10, 7), c = cv.getContext("2d");
+    for (var i = 0; i < 10; i++) for (var j = 0; j < 7; j++) {
+      var ch = ENV[j].charAt(i);
+      if (!seal && (ch === "S" || ch === "h")) ch = "p";
+      P(c, ENVP[ch], i, j);
+    }
+    return cv;
+  }
+
+  /* s seconds after he got sleepy: a yawn, then he lies down and sleeps, breathing slowly */
+  function sleepy(s, p) {
+    if (s < 1.4) { p.yawn = s > 0.2 && s < 1.1; p.blink = p.yawn; p.hy -= p.yawn ? 1 : 0; return; }
+    lieDown(ramp(s, 1.4, 2.2), p);
+    if (p.lie === 1) { p.blink = true; p.squash = Math.floor(s / 1.6) % 2; p.wag = 1e9; }   /* tail still */
+  }
+  /* Send: he gets up and watches the envelope come, mouth open just before it arrives, then catches it
+     with a squash and bounces with it */
+  function takeLetter(send, catchIn, p) {
+    p.sit = 1 - ramp(send, 0, 0.25); p.wag = 0.06;
+    if (catchIn > 0) { p.mouth = catchIn < 0.3; return; }
+    var s = -catchIn; p.letter = true;
+    if (s < 0.04) return;                                                   /* the page's envelope is still on top for a frame: same spot */
+    if (s < 0.16) { p.squash = 1; return; }
+    p.hop = Math.round(3 * Math.sin(Math.PI * ((s - 0.16) % 0.4) / 0.4));
+    if (p.hop > 1) p.k = [-2, -1, 2, 1]; else p.squash = 1;
+  }
+  /* a letter that couldn't be sent: he lowers his head, sets it down in the snow in front of him and
+     sits back down to wait; it fades where he left it (drawn in drawWait) */
+  function putDown(s, p) {
+    p.sit = ramp(s, 0.6, 1.0);
+    p.hy = Math.round(3 * Math.min(ramp(s, 0, 0.3), 1 - ramp(s, 0.45, 0.7))) - Math.round(p.sit);
+    p.letter = s < 0.35; p.wag = 0.2;
+  }
+  function lieDown(lie, p) {
+    p.lie = lie; p.hy = Math.round(6 * lie) - 1;                            /* head down onto his paws */
+    p.k = [0, 0, Math.round(2 * lie), Math.round(lie)];                     /* front paws forward */
+  }
+
+  function drawWait(c, r, cue) {
+    var p = basePose(), a = cue || CALM;
+    r = Math.max(0, r);
+    if (a.send < Infinity) takeLetter(a.send, a.catchIn, p);
+    else if (a.cheer < GR.pet) greetReaction({ kind: "pet", age: a.cheer }, p);
+    else {
+      p.sit = ramp(Math.min(r, a.cheer - GR.pet), 0.2, 0.6);               /* sits down once the page opens, or after a cheer */
+      p.hy = -Math.round(p.sit); p.wag = a.typing ? 0.12 : 0.45;
+      p.blink = fract(r / 4.7) < 0.03;
+      if (a.returned < PUT_DOWN) putDown(a.returned, p);
+      else if (a.asleep >= 0) sleepy(a.asleep, p);
+      else if (a.woke < 1) {                                                /* up at once, then "huh?" */
+        lieDown(1 - ramp(a.woke, 0, 0.35), p); huh(a.woke, 0.35, 1.0, p); p.wag = 0.12;
+      } else if (a.huh < 0.9) huh(a.huh, 0, 0.9, p);
+    }
+    if (p.woof >= 0 && p.woof < 0.55) p.mouth = true;
+    drawPlayAstro(c, r, p);
+    if (p.woof >= 0) drawWoof(c, p, p.woof);
+    if (p.heart > 0 && p.heart < 1) drawHeart(c, p, p.heart);
+    if (a.asleep >= 2.2) drawZeds(c, p, a.asleep - 2.2);
+    if (a.returned >= 0.35 && a.returned < PUT_DOWN) drawEnvelope(c, p.x + 28, AY + 23, 0, 1 - ramp(a.returned, 0.7, PUT_DOWN));
+  }
+
+  /* two z's drifting up from his head in turn, fading in and out */
+  function drawZeds(c, p, s) {
+    for (var k = 0; k < 2; k++) {
+      var q = fract(s / 2.4 + k / 2), x = Math.round(p.x + 27 + 6 * q), y = Math.round(AY + 12 - 14 * q);
+      c.globalAlpha = Math.sin(Math.PI * q);
+      for (var j = 0; j < 3; j++) for (var i = 0; i < 3; i++) if (ZED[j].charAt(i) === "#") P(c, INK, x + i, y + j);
+    }
+    c.globalAlpha = 1;
+  }
+
+  /* the delivery run at delivery time d (0..T) */
+  function drawDelivery(c, d) {
+    if (d >= RUN.t0 && d < RUN.t0 + RUN.tauEnd) { drawAstroRun(c, d); return; }
+    if (d >= RUN.t0 + RUN.tauEnd && d < D.ret0) return;
+    var o = { letter: true };
+    if (d >= D.hop0 && d < D.crouch0) o.hop = hopH(d);
+    else if (d >= D.crouch0 && d < RUN.t0) o.breath = -1;
+    if (d >= D.ret0) { o.reveal = clamp((d - (D.ret0 + 0.8)) / 0.9, 0, 1); o.revealL = clamp((d - (D.ret0 + 1.75)) / 0.55, 0, 1); }
+    drawAstro(c, d, o);
+  }
+
   function drawActor(c, t, r, a) {
+    if (WAIT) { drawWait(c, r === undefined ? t : r, a); return; }
     if (GREET) { drawGreet(c, r === undefined ? t : r, a); return; }
     if (PLAY) { drawPlay(c, r === undefined ? t : r); return; }
-    if (!DELIVER) { drawAstro(c, t); return; }
-    if (t >= RUN.t0 && t < RUN.t0 + RUN.tauEnd) { drawAstroRun(c, t); return; }
-    if (t >= RUN.t0 + RUN.tauEnd && t < D.ret0) return;
-    var o = { letter: true };
-    if (t >= D.hop0 && t < D.crouch0) o.hop = hopH(t);
-    else if (t >= D.crouch0 && t < RUN.t0) o.breath = -1;
-    if (t >= D.ret0) { o.reveal = clamp((t - (D.ret0 + 0.8)) / 0.9, 0, 1); o.revealL = clamp((t - (D.ret0 + 1.75)) / 0.55, 0, 1); }
-    drawAstro(c, t, o);
+    if (DELIVER) { drawDelivery(c, r); return; }
+    drawAstro(c, t);
   }
 
   /* ------------------------------------------------------------------ frame */
-  /* t: scene loop time. r: the routine's own time (variants 'play' and 'greet'). a: a reaction ('greet' only). */
+  /* t: scene loop time. r: the routine's own time (variants 'play', 'greet', 'wait', and 'deliver',
+     whose run has its own clock so the sky carries on unbroken while it starts with the page).
+     a: a reaction ('greet') or what the visitor has done ('wait'). */
   function render(c, t, r, a) {
     t = ((t % T) + T) % T;
+    if (DELIVER) r = r === undefined ? t : ((r % T) + T) % T;
     c.imageSmoothingEnabled = false; c.globalAlpha = 1;
     c.drawImage(sky.cv, 0, 0);
     drawStars(c, t);
@@ -1148,9 +1247,9 @@ export function createScene(env) {
     drawSmoke(c, t);
     drawGlitter(c, t);
     drawFlakes(c, t, 1);
-    if (DELIVER) { drawPuffs(c, t); drawTrail(c, t); }
+    if (DELIVER) { drawPuffs(c, r); drawTrail(c, r); }
     drawActor(c, t, r, a);
-    if (DELIVER) drawReturn(c, t);
+    if (DELIVER) drawReturn(c, r);
     c.drawImage(front.cv, 0, 0);
     drawFlakes(c, t, 2);
     drawFlakes(c, t, 3);
@@ -1161,7 +1260,8 @@ export function createScene(env) {
     W: W, H: H, T: T, render: render, focusX: AX + 16,
     astro: { x0: AX, x1: AX + 32, y0: AY, y1: AY + 32 },                   /* Astro's sprite box, in scene pixels */
     delivery: DELIVER ? { dash: RUN.t0, gone: RUN.t0 + RUN.tauEnd } : null, /* when he dashes off, and when he has left the screen */
-    routine: PLAY ? { still: 6.5 } : GREET ? { still: GR.hello + 11 } : null, /* the routine's still frame (sitting) */
-    petLength: GR.pet                                                       /* how long his reaction to a click lasts ('greet') */
+    routine: PLAY ? { still: 6.5 } : GREET ? { still: GR.hello + 11 } : WAIT ? { still: 10 } : null, /* the routine's still frame (sitting) */
+    petLength: GR.pet,                                                      /* how long his reaction to a click lasts ('greet') */
+    letter: { x: AX + 27, y: AY + 14, art: envelopeArt }                    /* where the envelope sits in his mouth as he catches it ('wait') */
   };
 }
