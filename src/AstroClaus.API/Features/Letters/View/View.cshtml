@@ -47,16 +47,32 @@
             <p class="subtitle">Dear Santa,</p>
             <p class="hand">@letter.Message</p>
 
+            @* Each wish is a polaroid taped to the paper, two to a row (DESIGN.md §4). A wish with two
+               pictures is a small stack, the second peeking out from behind; one with none is a sticky note. *@
             <h2 class="heading">My wishes</h2>
-            <ol class="wish-cards">
+            <ol class="polaroids">
                 @for (var i = 0; i < letter.Wishes.Count; i++)
                 {
                     var wish = letter.Wishes[i];
-                    @* --i staggers the cards' entrance *@
-                    <li class="wish-card" style="--i: @i" data-letter-wish>
-                        <span class="wish-number" aria-hidden="true">@(i + 1)</span>
-                        <div class="wish-body">
-                            <p class="wish-name" data-wish-name>@wish.Name</p>
+                    var pictures = wish.Images.Select(image => $"/letter/{letter.Id}/images/{image}").ToList();
+                    @* --i staggers the polaroids' entrance *@
+                    <li class="polaroid @(pictures.Count == 0 ? "sticky-note" : null)" style="--i: @i" data-letter-wish>
+                        <div class="polaroid-front">
+                            @if (pictures.Count > 0)
+                            {
+                                @* Opens in the picture modal; without the page script, in a new tab *@
+                                <a class="polaroid-picture" href="@pictures[0]" target="_blank" rel="noopener" data-picture>
+                                    <img src="@pictures[0]" alt="Picture for @wish.Name" loading="lazy" />
+                                    @if (pictures.Count > 1)
+                                    {
+                                        <span class="polaroid-count"><span class="icon icon-image" aria-hidden="true"></span>@pictures.Count<span class="visually-hidden"> pictures</span></span>
+                                    }
+                                </a>
+                            }
+                            <div class="polaroid-caption">
+                                <span class="wish-number" aria-hidden="true">@(i + 1)</span>
+                                <p class="polaroid-name" data-wish-name>@wish.Name</p>
+                            </div>
                             @if (Wish.IsWebLink(wish.Link))
                             {
                                 <a class="find-it" href="@wish.Link" target="_blank" rel="noopener noreferrer nofollow ugc" data-wish-link>
@@ -64,19 +80,17 @@
                                     <span class="icon icon-arrow-up-right" aria-hidden="true"></span>
                                 </a>
                             }
-                            @if (wish.Images.Count > 0)
-                            {
-                                <div class="wish-pictures">
-                                    @foreach (var image in wish.Images)
-                                    {
-                                        @* Opens in the picture modal; without the page script, in a new tab *@
-                                        <a href="/letter/@letter.Id/images/@image" target="_blank" rel="noopener" data-picture>
-                                            <img src="/letter/@letter.Id/images/@image" alt="Picture for @wish.Name" loading="lazy" />
-                                        </a>
-                                    }
-                                </div>
-                            }
                         </div>
+                        @* The rest of the stack, after the front so the picture modal shows them in order.
+                           Keyboard users reach them with the modal's arrow keys. *@
+                        @for (var j = 1; j < pictures.Count; j++)
+                        {
+                            <div class="polaroid-back">
+                                <a class="polaroid-picture" href="@pictures[j]" target="_blank" rel="noopener" tabindex="-1" data-picture>
+                                    <img src="@pictures[j]" alt="Picture @(j + 1) for @wish.Name" loading="lazy" />
+                                </a>
+                            </div>
+                        }
                     </li>
                 }
             </ol>
@@ -109,13 +123,16 @@
     </section>
 
     @* One modal for every picture on the letter; the page script fills it with the picture clicked.
-       No buttons: Escape or a click outside closes it. *@
+       ← → or a swipe go to the letter's other pictures. No buttons: Escape or a click outside closes it. *@
     <dialog class="modal modal-picture" id="picture-modal" aria-labelledby="picture-title">
         <figure>
             <img data-picture-image alt="" />
             <figcaption>
                 <span class="body-strong" id="picture-title" data-picture-title></span>
-                <a class="caption" target="_blank" rel="noopener noreferrer nofollow ugc" data-picture-link hidden>Find it here</a>
+                <span class="picture-end">
+                    <span class="caption muted" data-picture-count></span>
+                    <a class="caption" target="_blank" rel="noopener noreferrer nofollow ugc" data-picture-link hidden>Find it here</a>
+                </span>
             </figcaption>
         </figure>
     </dialog>

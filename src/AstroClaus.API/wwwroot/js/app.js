@@ -37,36 +37,68 @@ function initModals() {
 
 // ---- Picture modal (view page) ----------------------------------------------
 // One modal for every picture on the letter. Clicking a picture fills it with that picture,
-// its wish's name and the wish's link. Ctrl/Cmd/Shift-click still opens the picture in a new
-// tab, and without this script every click does.
+// its wish's name and the wish's link; ← → or a swipe go through the letter's other pictures,
+// in order. Ctrl/Cmd/Shift-click still opens the picture in a new tab, and without this
+// script every click does.
 function initPictureModal() {
   const modal = $("#picture-modal");
   if (!modal) return;
 
   const title = $("[data-picture-title]", modal);
   const image = $("[data-picture-image]", modal);
+  const count = $("[data-picture-count]", modal);
   const findIt = $("[data-picture-link]", modal);
+  const pictures = $$("[data-picture]");
+  let at = 0;
+  let latest = 0; // a picture that finishes loading after a newer one was asked for is ignored
 
-  $$("[data-picture]").forEach((picture) =>
+  // The next picture shows at once, with no motion: it is stepped to by key.
+  const show = async (i) => {
+    at = (i + pictures.length) % pictures.length;
+    const picture = pictures[at];
+    const load = ++latest;
+
+    const wish = picture.closest("[data-letter-wish]");
+    const wishLink = $("[data-wish-link]", wish);
+    title.textContent = $("[data-wish-name]", wish).textContent;
+    count.textContent = pictures.length > 1 ? `${at + 1} of ${pictures.length}` : "";
+    findIt.hidden = !wishLink;
+    if (wishLink) findIt.href = wishLink.href;
+
+    // The modal is sized from the picture's shape, so know it before showing it. The letter
+    // already loaded this same file, so this is quick.
+    image.src = picture.href;
+    image.alt = $("img", picture).alt;
+    await image.decode().catch(() => {});
+    if (load === latest) image.style.setProperty("--picture-ratio", image.naturalWidth / image.naturalHeight || 1);
+  };
+
+  pictures.forEach((picture, i) =>
     picture.addEventListener("click", async (e) => {
       if (e.ctrlKey || e.metaKey || e.shiftKey) return;
       e.preventDefault();
-
-      const wish = picture.closest("[data-letter-wish]");
-      const wishLink = $("[data-wish-link]", wish);
-      title.textContent = $("[data-wish-name]", wish).textContent;
-      findIt.hidden = !wishLink;
-      if (wishLink) findIt.href = wishLink.href;
-
-      // The modal is sized from the picture's shape, so know it before opening. The thumbnail
-      // already loaded this same file, so this is quick.
-      image.src = picture.href;
-      image.alt = $("img", picture).alt;
-      await image.decode().catch(() => {});
-      image.style.setProperty("--picture-ratio", image.naturalWidth / image.naturalHeight || 1);
-
+      await show(i);
       modal.showModal();
     }));
+
+  addEventListener("keydown", (e) => {
+    const step = modal.open && { ArrowLeft: -1, ArrowRight: 1 }[e.key];
+    if (!step) return;
+    e.preventDefault();
+    show(at + step);
+  });
+
+  // A swipe across the picture: a quick flick is enough, it needn't travel far
+  let swipe = null;
+  image.addEventListener("pointerdown", (e) => (swipe = { x: e.clientX, time: e.timeStamp }));
+  image.addEventListener("pointercancel", () => (swipe = null));
+  image.addEventListener("pointerup", (e) => {
+    if (!swipe) return;
+    const distance = e.clientX - swipe.x;
+    const velocity = Math.abs(distance) / (e.timeStamp - swipe.time || 1);
+    swipe = null;
+    if (Math.abs(distance) > 48 || (Math.abs(distance) > 12 && velocity > 0.11)) show(at + (distance < 0 ? 1 : -1));
+  });
 }
 
 // ---- Share section (view page) --------------------------------------------
