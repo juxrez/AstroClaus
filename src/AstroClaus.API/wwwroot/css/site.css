@@ -241,7 +241,12 @@ body {
   .site-header:has(.back-link) .logo { justify-self: end; }
 }
 .site-main { flex: 1 0 auto; display: flex; flex-direction: column; justify-content: center; width: 100%; max-width: 720px; margin: 0 auto; }
-.site-footer { display: flex; justify-content: center; align-items: center; gap: var(--space-2); padding-top: var(--space-6); color: var(--ink-muted); }
+.site-footer { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: var(--space-2); padding-top: var(--space-6); color: var(--ink-muted); }
+.footer-break { flex-basis: 100%; height: 0; }
+/* Only the words are underlined, not the heart */
+.support-link { display: inline-flex; align-items: center; gap: var(--space-1); text-decoration: none; }
+.support-link span { text-decoration: underline; }
+.support-heart { width: 13px; height: 12px; fill: var(--cranberry); }
 
 .page { display: flex; flex-direction: column; gap: var(--space-4); }
 
@@ -512,6 +517,21 @@ body {
 .share-link .field { flex: 1 1 240px; min-width: 0; }
 .share-apps { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .write-own { align-self: center; font-weight: 700; }
+
+/* Support modal (Ko-fi): a close button over Ko-fi's form. The form is light, so it sits on its own light card. */
+.modal-support { width: min(420px, calc(100% - var(--space-8))); }
+.modal-support[open] { display: flex; flex-direction: column; }
+.support-top { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-3) var(--space-3) var(--space-6); }
+.support-note { margin: calc(-1 * var(--space-2)) var(--space-6) var(--space-3); }
+.modal-support iframe {
+  display: block;
+  width: calc(100% - 2 * var(--space-3));
+  height: min(620px, 100dvh - 160px);
+  margin: 0 var(--space-3) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: #f9f9f9;
+}
 
 /* Landing (DESIGN.md §4): a left-aligned block, then the three steps */
 .landing { gap: var(--space-8); }

@@ -1,0 +1,12 @@
+@* Ko-fi's donation form, on every page. The footer's Support link opens it; the page script loads
+   the form on the first open only, so Ko-fi isn't contacted until someone asks for it. *@
+<dialog class="modal modal-support" id="support-modal" aria-labelledby="support-title">
+    <div class="support-top">
+        <h2 class="heading" id="support-title">Support Astro Claus</h2>
+        <button type="button" class="icon-button" aria-label="Close" data-close-modal>
+            <span class="icon icon-x" aria-hidden="true"></span>
+        </button>
+    </div>
+    <p class="caption muted support-note">Every donation goes to keeping this site online: its hosting and the storage for your letters. That's how writing to Santa stays free.</p>
+    <iframe title="Support Astro Claus on Ko-fi" data-src="https://ko-fi.com/ajuarez/?hidefeed=true&widget=true&embed=true&preview=true"></iframe>
+</dialog>

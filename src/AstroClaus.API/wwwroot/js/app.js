@@ -35,6 +35,21 @@ function initModals() {
   });
 }
 
+// ---- Support modal (Ko-fi) --------------------------------------------------
+// A [data-support] link opens Ko-fi's form in the support modal instead of a new tab. The form loads on
+// the first open, so Ko-fi isn't contacted for visitors who never ask for it.
+function initSupportModal() {
+  const modal = $("#support-modal");
+  if (!modal) return;
+  const form = $("iframe", modal);
+
+  $$("[data-support]").forEach((link) => link.addEventListener("click", (e) => {
+    e.preventDefault();
+    if (!form.src) form.src = form.dataset.src;
+    modal.showModal();
+  }));
+}
+
 // ---- Picture modal (view page) ----------------------------------------------
 // One modal for every picture on the letter. Clicking a picture fills it with that picture,
 // its wish's name and the wish's link; ← → or a swipe go through the letter's other pictures,
@@ -349,6 +364,7 @@ function fadeOut(element) {
 const diorama = startDiorama();
 forgetJustSent();
 initModals();
+initSupportModal();
 initPictureModal();
 initShare();
 initCreateForm({ onSend: diorama.sendLetter, onAdd: diorama.cheer, onFail: diorama.returnLetter });

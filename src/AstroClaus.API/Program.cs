@@ -2,6 +2,7 @@ using Azure.Storage.Blobs;
 using Azure.Identity;
 using AstroClaus.API.Features.Letters;
 using AstroClaus.API.Features.Letters.View;
+using AstroClaus.API.Features.Seo;
 using OpenTelemetry.Trace;
 using Azure.Monitor.OpenTelemetry.AspNetCore;
 using AstroClaus.API.Extensions;
@@ -32,6 +33,7 @@ app.UseRouting();
 app.MapStaticAssets();
 app.MapRazorPages().WithStaticAssets();
 app.MapLetterImages();
+app.MapSeo();
 
 app.Run();
 

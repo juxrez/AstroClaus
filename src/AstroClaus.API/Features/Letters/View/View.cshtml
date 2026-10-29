@@ -3,6 +3,11 @@
 @using System.Globalization
 @{
     ViewData["Title"] = Model.Letter is null ? "Letter delivered" : $"A letter from {Model.Letter.From}";
+    // Letters stay out of search results, and a shared link's preview never shows the child's
+    // nickname, message or pictures: only the page itself does (constitution rule 8).
+    ViewData["NoIndex"] = true;
+    ViewData["ShareTitle"] = "A letter to Santa";
+    ViewData["Description"] = "Someone wrote a letter to Santa, and Astro delivered it to the North Pole. Open it to read their wishes.";
     // Just sent: Astro runs off with the letter. Opened by a reader: Astro plays in the snow.
     // On phones he shows in a window above the letter (design/DESIGN.md §2, rule 13).
     if (Model.Letter is not null)

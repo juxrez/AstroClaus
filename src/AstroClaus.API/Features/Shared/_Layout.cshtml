@@ -1,10 +1,43 @@
+@{
+    var title = ViewData["Title"] is string t ? $"{t} · Astro Claus" : "Astro Claus";
+    var shareTitle = ViewData["ShareTitle"] as string ?? title;
+    var description = ViewData["Description"] as string
+        ?? "Write a letter to Santa, and Astro the reindeer pup carries it to the North Pole. No account needed.";
+    var site = $"{Context.Request.Scheme}://{Context.Request.Host}";
+}
 <!DOCTYPE html>
 @* ViewData["Diorama"]: "delivery" on the page a letter was just sent to, "play" on a letter opened by a reader, "greet" on the landing, "wait" on Create, otherwise the plain scene (design/DESIGN.md §2). *@
 <html lang="en" data-diorama="@(ViewData["Diorama"] as string ?? "plain")">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>@(ViewData["Title"] is string t ? $"{t} · Astro Claus" : "Astro Claus")</title>
+    <title>@title</title>
+
+    @* What search engines and link previews (WhatsApp, Messenger, X...) show. A page may set:
+       Description, ShareTitle (the preview's title, if not the page title), Canonical (a path) and
+       NoIndex (true keeps the page out of search results: letters). Preview addresses must be absolute. *@
+    <meta name="description" content="@description" />
+    @if (ViewData["NoIndex"] is true)
+    {
+        <meta name="robots" content="noindex" />
+    }
+    @if (ViewData["Canonical"] is string canonical)
+    {
+        <link rel="canonical" href="@(site + canonical)" />
+    }
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Astro Claus" />
+    <meta property="og:title" content="@shareTitle" />
+    <meta property="og:description" content="@description" />
+    <meta property="og:url" content="@(site + Context.Request.Path)" />
+    <meta property="og:image" content="@(site + "/share-preview.png")" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Astro, a pixel-art reindeer pup, standing in the snow under the night sky" />
+    <meta name="twitter:card" content="summary_large_image" />
+    @* Astro's face, cut from his sprite. The 180px one is for phones' home screens. *@
+    <link rel="icon" href="~/favicon.svg" type="image/svg+xml" asp-append-version="true" />
+    <link rel="apple-touch-icon" href="~/apple-touch-icon.png" asp-append-version="true" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Nunito:wght@400;600;700&family=Patrick+Hand&family=Press+Start+2P&display=swap" rel="stylesheet" />
@@ -60,6 +93,17 @@
             @await RenderSectionAsync("FooterNote", required: false)
             <span class="icon icon-snowflake" aria-hidden="true"></span>
             <button type="button" class="link" data-open-modal="terms-modal">Terms</button>
+            @* Ko-fi gets its own line under the rest *@
+            <span class="footer-break" aria-hidden="true"></span>
+            @* For grown-ups: a link like Terms, with only a small pixel heart. Opens Ko-fi's form in the
+               support modal (_SupportModal); without the page script, the Ko-fi page in a new tab. *@
+            <a class="support-link" href="https://ko-fi.com/ajuarez" target="_blank" rel="noopener" data-support>
+                <svg class="support-heart" viewBox="0 0 9 8" shape-rendering="crispEdges" aria-hidden="true">
+                    <path d="M2 1h2v1h1V1h2v1h1v2H7v1H6v1H5v1H4V6H3V5H2V4H1V2h1z" />
+                    <path fill="#fff" d="M2 2h1v1H2z" />
+                </svg>
+                <span>Help keep Astro online</span>
+            </a>
         </footer>
     </div>
 
@@ -73,6 +117,7 @@
     </div>
 
     <partial name="_TermsModal" />
+    <partial name="_SupportModal" />
 
     @* One entry point for scripts. *@
     <script type="module" src="~/js/app.js" asp-append-version="true"></script>
