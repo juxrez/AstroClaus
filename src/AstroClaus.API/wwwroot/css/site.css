@@ -641,6 +641,25 @@ body {
 .add-image:has(:focus-visible) { box-shadow: var(--focus-ring); }
 .wish-images .caption { order: 2; }
 
+/* Field errors (checked in Create.cshtml.cs): the field turns cranberry, shakes once (app.js) and
+   its message sits right under it. The paper and the picture tiles show the error for their fields. */
+.field.input-validation-error { border-color: var(--cranberry); box-shadow: 0 0 0 1px var(--cranberry); }
+.letter-draft:has(.input-validation-error) { box-shadow: var(--shadow-md), 0 0 0 2px var(--cranberry); }
+.picture-slot:has(.input-validation-error) .thumb img { outline: 2px solid var(--cranberry); outline-offset: 2px; }
+.picture-slot:has(.input-validation-error) .add-image { color: var(--cranberry); border-color: var(--cranberry); }
+.field-error { display: block; margin-top: var(--space-1); color: var(--cranberry); font: 600 13px/18px var(--font-sans); }
+.field-validation-valid { display: none; }
+.shake { animation: shake 400ms ease-in-out; }
+@keyframes shake {
+  10%, 90% { transform: translateX(-1px); }
+  20%, 80% { transform: translateX(2px); }
+  30%, 50%, 70% { transform: translateX(-4px); }
+  40%, 60% { transform: translateX(4px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shake { animation: none; }
+}
+
 @media (hover: hover) and (pointer: fine) {
   .icon-button:hover { color: var(--ink); background: color-mix(in srgb, var(--ink) 8%, transparent); }
   .add-image:hover { color: var(--ink); border-color: var(--ink-muted); }

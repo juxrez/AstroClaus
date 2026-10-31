@@ -4,25 +4,41 @@
 @model (string Index, AstroClaus.API.Features.Letters.Create.WishForm Wish)
 @{
     var number = int.TryParse(Model.Index, out var index) ? (index + 1).ToString() : "";
+
+    // Errors the server found in this wish (Create.cshtml.cs), shown under their fields. The page
+    // script shows the same thing when the letter was sent in the background.
+    string FieldName(string field) => $"Form.Wishes[{Model.Index}].{field}";
+    string? ErrorFor(string field) =>
+        ViewContext.ViewData.ModelState.TryGetValue(FieldName(field), out var entry) && entry.Errors.Count > 0 ? entry.Errors[0].ErrorMessage : null;
+    string Invalid(string field) => ErrorFor(field) is null ? "" : "input-validation-error";
+    var pictureField = ErrorFor(nameof(Model.Wish.Image1)) is not null ? nameof(Model.Wish.Image1) : nameof(Model.Wish.Image2);
 }
 <li class="wish" data-wish>
     <div class="wish-top">
         <label class="wish-field">
             <span class="body-strong" data-wish-label>Wish @number</span>
-            <input class="field" type="text" name="Form.Wishes[@Model.Index].Name" value="@Model.Wish.Name"
+            <input class="field @Invalid("Name")" type="text" name="@FieldName("Name")" value="@Model.Wish.Name"
                    maxlength="@LetterLimits.WishNameMax" placeholder="What are you wishing for?" />
+            @if (ErrorFor("Name") is { } nameError)
+            {
+                <span class="field-error field-validation-error" data-valmsg-for="@FieldName("Name")">@nameError</span>
+            }
         </label>
         <button type="button" class="icon-button" data-remove-wish aria-label="Remove wish @number">
             <span class="icon icon-x" aria-hidden="true"></span>
         </button>
     </div>
-    <input class="field field-small" type="url" name="Form.Wishes[@Model.Index].Link" value="@Model.Wish.Link"
+    <input class="field field-small @Invalid("Link")" type="url" name="@FieldName("Link")" value="@Model.Wish.Link"
            maxlength="@LetterLimits.WishLinkMax" placeholder="Link (optional): https://…"
            aria-label="Where to find it (optional link)" autocomplete="off" />
+    @if (ErrorFor("Link") is { } linkError)
+    {
+        <span class="field-error field-validation-error" data-valmsg-for="@FieldName("Link")">@linkError</span>
+    }
 
     @* One slot per picture field: its thumbnail once a picture is picked, otherwise its Add image
        tile. The page script shows only the first empty tile; without the script both tiles show. *@
-    <div class="wish-images">
+    <div class="wish-images" data-error-target>
         @foreach (var field in new[] { nameof(Model.Wish.Image1), nameof(Model.Wish.Image2) })
         {
             <div class="picture-slot" data-picture-slot>
@@ -35,7 +51,7 @@
                 <label class="add-image">
                     <span class="icon icon-image" aria-hidden="true"></span>
                     Add image
-                    <input class="visually-hidden" type="file" name="Form.Wishes[@Model.Index].@field" accept="image/jpeg,image/png,image/webp" data-image />
+                    <input class="visually-hidden @Invalid(field)" type="file" name="@FieldName(field)" accept="image/jpeg,image/png,image/webp" data-image />
                 </label>
             </div>
         }
@@ -43,4 +59,8 @@
             <span data-images-count>0 of @LetterLimits.MaxImagesPerWish images</span><span data-images-hint> · JPG, PNG or WebP, up to @LetterLimits.MaxImageMb MB</span>
         </p>
     </div>
+    @if (ErrorFor(pictureField) is { } pictureError)
+    {
+        <span class="field-error field-validation-error" data-valmsg-for="@FieldName(pictureField)">@pictureError</span>
+    }
 </li>

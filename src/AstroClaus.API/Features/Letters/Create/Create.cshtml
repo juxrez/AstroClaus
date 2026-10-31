@@ -26,23 +26,26 @@
                 <p class="body muted">Take your time. Astro will wait right here.</p>
             </div>
 
-            <div asp-validation-summary="All" class="banner banner-error body"></div>
+            @* Each field shows its own error under it; this lists only errors that belong to no field *@
+            <div asp-validation-summary="ModelOnly" class="banner banner-error body" data-form-errors></div>
 
             <div class="group nickname">
                 <label class="heading" for="from">Your nickname</label>
                 <input class="field" id="from" asp-for="Form.From" maxlength="@LetterLimits.FromMax" placeholder="Who is this from?" autocomplete="off" />
+                <span class="field-error" asp-validation-for="Form.From"></span>
             </div>
 
             <div class="group">
                 <label class="heading" for="message">Your message</label>
                 @* Written on the letter paper, as it will look once sent. The sign-off fills in with the nickname. *@
-                <div class="paper letter-draft">
+                <div class="paper letter-draft" data-error-target>
                     <p class="subtitle">Dear Santa,</p>
                     <textarea class="hand draft-message" id="message" asp-for="Form.Message" rows="4"
                               maxlength="@LetterLimits.MessageMax" placeholder="This year I have been very good..."></textarea>
                     <p class="caption draft-count" aria-live="polite"><span id="message-count">0</span> / @LetterLimits.MessageMax</p>
                     <p class="hand sign-off" aria-hidden="true">With love, <span id="sign-name">@Model.Form.From</span></p>
                 </div>
+                <span class="field-error" asp-validation-for="Form.Message"></span>
             </div>
 
             <section class="group" aria-labelledby="wishes-title">
