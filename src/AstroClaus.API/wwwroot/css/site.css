@@ -405,7 +405,7 @@ body {
 .polaroid:nth-child(4n+3) { --tilt: 2deg; --tape: var(--ice); }
 .polaroid:nth-child(4n) { --tilt: -1.25deg; --tape: var(--lantern); }
 
-.polaroid-front, .polaroid-back {
+.polaroid-front {
   padding: 10px 10px var(--space-3);
   background: color-mix(in srgb, var(--paper), white 75%);
   border-radius: 3px;
@@ -427,27 +427,33 @@ body {
   background: color-mix(in srgb, var(--tape) 45%, transparent);
   transform: translateX(-50%) rotate(-4deg);
 }
-/* A wish's other picture, behind the first and turned a little further */
-.polaroid-back { position: absolute; inset: 0; z-index: -1; transform: rotate(calc(var(--tilt) + 5deg)) translate(6px, 2px); }
-
+.polaroid-photo { position: relative; }
 .polaroid-picture { position: relative; display: block; border-radius: 2px; transition: transform 160ms var(--ease-out); }
 .polaroid-picture:active { transform: scale(0.97); }
 .polaroid-picture img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 2px; background: var(--paper-line); }
-/* "2 pictures", on the front picture of a stack */
-.polaroid-count {
+/* A wish's second picture: a small polaroid tucked on the first one's bottom-right corner, turned a
+   little, so it can always be seen. The same on the letter page and on Create (.thumb-swap). */
+.polaroid-second {
   position: absolute;
-  right: 6px;
-  bottom: 6px;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px var(--space-2);
-  background: color-mix(in srgb, var(--on-paper) 72%, transparent);
-  color: var(--paper);
-  border-radius: var(--radius-full);
-  font: 700 12px/16px var(--font-sans);
+  right: -6px;
+  bottom: -6px;
+  z-index: 1;
+  width: 46%;
 }
-.polaroid-count .icon { width: 14px; height: 14px; }
+.polaroid-second, .thumb-swap {
+  display: block;
+  padding: 4px 4px 10px;
+  border: 0;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--paper), white 75%);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--on-paper) 30%, transparent),
+              0 6px 12px -6px color-mix(in srgb, var(--on-paper) 60%, transparent);
+  transform: rotate(6deg);
+  cursor: pointer;
+  transition: transform 160ms var(--ease-out);
+}
+.polaroid-second:active, .thumb-swap:active { transform: rotate(6deg) scale(0.97); }
+.polaroid-second img, .thumb-swap img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 1px; background: var(--paper-line); }
 
 .polaroid-caption { display: flex; align-items: flex-start; gap: var(--space-2); }
 .polaroid-caption .wish-number { width: 26px; height: 26px; font-size: 14px; }
@@ -477,10 +483,9 @@ body {
 .sticky-note .polaroid-name { font-size: 17px; line-height: 24px; }
 .sticky-note .find-it { margin-top: var(--space-2); }
 
-/* Pointed at, a polaroid straightens and lifts, and its stack fans out (mouse pointers only) */
+/* Pointed at, a polaroid straightens and lifts (mouse pointers only) */
 @media (hover: hover) and (pointer: fine) {
   .polaroid:hover .polaroid-front { transform: rotate(0deg) translateY(-3px); }
-  .polaroid:hover .polaroid-back { transform: rotate(calc(var(--tilt) + 8deg)) translate(12px, 0); }
 }
 
 .wish-number {
@@ -561,9 +566,11 @@ body {
 .create-intro { display: flex; flex-direction: column; gap: var(--space-1); margin-bottom: var(--space-6); }
 .nickname .field { max-width: 420px; }
 
-/* The message, written on the letter paper as it will look once sent */
-.letter-draft { gap: var(--space-2); padding: var(--space-6); transition: box-shadow 150ms ease; }
-.letter-draft:focus-within { box-shadow: var(--shadow-md), var(--focus-ring); }
+/* The whole letter on one sheet of paper, as it will look once sent: the message, the wishes taped
+   on as polaroids, the sign-off. The message shows its focus with a ring of the paper's own ink. */
+.letter-draft { gap: var(--space-4); padding: var(--space-6); }
+.letter-message { display: flex; flex-direction: column; gap: var(--space-2); border-radius: var(--radius-sm); }
+.letter-message:focus-within { outline: 2px solid var(--paper-muted); outline-offset: 6px; }
 .draft-message {
   display: block;
   width: 100%;
@@ -580,29 +587,110 @@ body {
 .draft-count { align-self: flex-end; color: var(--paper-muted); }
 #sign-name:empty::before { content: "your nickname"; color: var(--paper-muted); }
 
-.wishes-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--space-2) var(--space-4); }
-.wishes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-3); }
-.wish {
+/* The wishes: polaroids on the paper, as on the letter page, but each one edited right there */
+.letter-wishes { display: flex; flex-direction: column; gap: var(--space-2); margin-top: var(--space-2); }
+.letter-wishes .overline { color: var(--paper-muted); }
+.wishes { grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); padding-top: var(--space-4); }
+
+/* The name and the link are written on the polaroid, on a dashed line */
+.wish-name, .wish-link-field {
+  width: 100%;
+  min-width: 0;
+  padding: 2px 0 4px;
+  border: 0;
+  border-bottom: 1.5px dashed var(--paper-line);
+  border-radius: 0;
+  background: transparent;
+  color: var(--on-paper);
+  font: 700 15px/21px var(--font-sans);
+}
+.wish-name { flex: 1; min-height: 27px; field-sizing: content; resize: none; overflow: hidden; }
+.wish-link-field { font: 600 13px/18px var(--font-sans); color: var(--paper-muted); }
+.wish-link-field[hidden] { display: none; }
+.wish-name::placeholder, .wish-link-field::placeholder { color: var(--paper-muted); font-weight: 600; }
+.wish-name:focus-visible, .wish-link-field:focus-visible { box-shadow: none; border-bottom: 1.5px solid var(--paper-muted); }
+.wish-link { display: flex; margin-top: auto; }
+/* Shows only while the link is folded away (app.js) */
+.add-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 32px;
+  padding: 0 var(--space-3) 0 var(--space-2);
+  background: transparent;
+  color: var(--paper-muted);
+  border: 1.5px solid var(--paper-line);
+  border-radius: var(--radius-full);
+  font: 700 13px/18px var(--font-sans);
+  cursor: pointer;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+.add-link .icon { width: 14px; height: 14px; }
+.add-link[hidden], .add-link:has(~ .wish-link-field:not([hidden])) { display: none; }
+
+/* Remove a wish: a small × on the polaroid's top-left, clear of the tape. Mouse pointers see it on
+   the polaroid they point at; touch screens always. */
+.wish-remove {
+  position: absolute;
+  top: -16px;
+  left: -16px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--paper);
+  cursor: pointer;
+  transition: opacity 150ms ease;
+}
+.wish-remove::before { content: ""; position: absolute; width: 26px; height: 26px; border-radius: var(--radius-full); background: var(--paper-muted); }
+.wish-remove .icon { position: relative; width: 14px; height: 14px; }
+.wish-remove[hidden] { display: none; }
+@media (hover: hover) and (pointer: fine) {
+  .wish-remove { opacity: 0; }
+  .wish:hover .wish-remove, .wish:focus-within .wish-remove, .wish-remove:focus-visible { opacity: 1; }
+}
+
+/* Add a wish: an empty, dashed frame in the next spot on the paper */
+.add-wish { display: flex; }
+.add-wish[hidden] { display: none; }
+.add-wish-tile {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  background: var(--surface-raised);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  min-height: 240px;
+  background: transparent;
+  color: var(--paper-muted);
+  border: 2px dashed color-mix(in srgb, var(--paper-muted) 45%, transparent);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: color 150ms ease, border-color 150ms ease, transform 160ms var(--ease-out);
 }
-.wish-top { display: flex; align-items: flex-end; gap: var(--space-3); }
-.wish-field { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-2); }
-.add-wish { align-self: flex-start; }
+.add-wish-tile .icon { width: 28px; height: 28px; }
+.add-wish-tile:active { transform: scale(0.98); }
 
-/* Pictures: thumbnails first, then the Add image tile, then the caption. The slots don't box
-   their children, so the order can mix them. */
-.wish-images { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-4); }
+/* Pictures: the photo square holds both slots. The first picture fills it; the second is a small
+   polaroid tucked on its bottom-right corner, turned a little. Empty, the first slot is a dashed
+   frame and the second an Another chip. The slots don't box their children. */
+.wish-photo { position: relative; width: 100%; aspect-ratio: 1; }
 .picture-slot { display: contents; }
-.thumb { position: relative; order: 0; width: 96px; height: 96px; margin: 0; }
+.thumb { margin: 0; }
 .thumb[hidden], .add-image[hidden] { display: none; }
-.thumb img { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: var(--radius-md); background: var(--surface-sunken); }
-/* A 28px circle inside a 44px hit area, on the thumbnail's top-right corner */
+.picture-slot:first-child .thumb { position: absolute; inset: 0; }
+.picture-slot:first-child .thumb img { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: 2px; background: var(--paper-line); }
+.picture-slot:first-child .thumb-remove { top: -8px; right: -8px; }
+/* The second picture's thumbnail is the letter page's corner polaroid (.polaroid-second) */
+.picture-slot:last-child .thumb { position: absolute; right: -6px; bottom: -6px; z-index: 1; width: 46%; }
+.thumb-swap { width: 100%; }
+.picture-slot:last-child .thumb-remove { top: -16px; right: -16px; }
+/* A 28px circle inside a 44px hit area, on a picture's top-right corner */
 .thumb-remove {
   position: absolute;
   top: -14px;
@@ -620,34 +708,58 @@ body {
 }
 .thumb-remove::before { content: ""; position: absolute; width: 28px; height: 28px; border-radius: var(--radius-full); background: var(--ink); }
 .thumb-remove .icon { position: relative; width: 16px; height: 16px; }
+/* Each add tile wraps its visually hidden file input, which keeps it inside the scrolling middle */
 .add-image {
-  position: relative; /* keeps its visually hidden file input inside the scrolling middle */
-  order: 1;
-  display: inline-flex;
-  flex-direction: column;
+  display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 6px;
-  width: 96px;
-  height: 96px;
-  color: var(--ink-muted);
-  border: 2px dashed var(--border-strong);
-  border-radius: var(--radius-md);
-  font: 700 13px/18px var(--font-sans);
+  font: 700 14px/20px var(--font-sans);
   cursor: pointer;
-  transition: color 120ms ease, border-color 120ms ease, transform 160ms var(--ease-out);
+  transition: color 150ms ease, border-color 150ms ease, transform 160ms var(--ease-out);
 }
 .add-image:active { transform: scale(0.97); }
 .add-image:has(:focus-visible) { box-shadow: var(--focus-ring); }
-.wish-images .caption { order: 2; }
+/* The empty photo: a dashed frame drawn in the paper's own inks */
+.picture-slot:first-child .add-image {
+  position: absolute;
+  inset: 0;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  background: color-mix(in srgb, var(--paper-line) 55%, transparent);
+  color: var(--paper-muted);
+  border: 2px dashed color-mix(in srgb, var(--paper-muted) 45%, transparent);
+  border-radius: 2px;
+  text-align: center;
+}
+.picture-slot:first-child .add-image .icon { width: 28px; height: 28px; margin-bottom: var(--space-1); }
+.add-image-hint { font: 600 12px/16px var(--font-sans); opacity: 0.8; }
+/* Another: a chip on the first picture's bottom-left corner */
+.picture-slot:last-child .add-image {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  z-index: 1;
+  gap: 2px;
+  min-height: 32px;
+  padding: 0 var(--space-3) 0 var(--space-2);
+  background: color-mix(in srgb, var(--on-paper) 72%, transparent);
+  color: var(--paper);
+  border-radius: var(--radius-full);
+  font: 700 12px/16px var(--font-sans);
+}
+.picture-slot:last-child .add-image .icon { width: 14px; height: 14px; }
 
 /* Field errors (checked in Create.cshtml.cs): the field turns cranberry, shakes once (app.js) and
-   its message sits right under it. The paper and the picture tiles show the error for their fields. */
+   its message sits right under it. The message and the picture tiles show the error for their fields. */
 .field.input-validation-error { border-color: var(--cranberry); box-shadow: 0 0 0 1px var(--cranberry); }
-.letter-draft:has(.input-validation-error) { box-shadow: var(--shadow-md), 0 0 0 2px var(--cranberry); }
+.wish-name.input-validation-error, .wish-link-field.input-validation-error { border-bottom: 2px solid var(--cranberry); }
+.letter-message:has(.input-validation-error) { outline: 2px solid var(--cranberry); outline-offset: 6px; }
 .picture-slot:has(.input-validation-error) .thumb img { outline: 2px solid var(--cranberry); outline-offset: 2px; }
-.picture-slot:has(.input-validation-error) .add-image { color: var(--cranberry); border-color: var(--cranberry); }
+.picture-slot:first-child:has(.input-validation-error) .add-image { color: var(--cranberry); border-color: var(--cranberry); }
 .field-error { display: block; margin-top: var(--space-1); color: var(--cranberry); font: 600 13px/18px var(--font-sans); }
+/* On the paper, cranberry is darkened to stay readable */
+.paper .field-error, .paper .error-text { color: color-mix(in srgb, var(--cranberry), var(--on-paper) 40%); }
+.wish .field-error { margin-top: -4px; }
 .field-validation-valid { display: none; }
 .shake { animation: shake 400ms ease-in-out; }
 @keyframes shake {
@@ -662,30 +774,43 @@ body {
 
 @media (hover: hover) and (pointer: fine) {
   .icon-button:hover { color: var(--ink); background: color-mix(in srgb, var(--ink) 8%, transparent); }
-  .add-image:hover { color: var(--ink); border-color: var(--ink-muted); }
+  .picture-slot:first-child .add-image:hover, .add-wish-tile:hover, .add-link:hover { color: var(--on-paper); border-color: var(--paper-muted); }
 }
 
+/* The action bar is a postage strip: a stamp, where the letter is going and what's in it, then Send */
 .action-bar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
   gap: var(--space-2) var(--space-4);
   padding-top: var(--space-4);
   border-top: 1px solid var(--line);
 }
-.info-note {
-  flex: 1 1 280px;
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
-  background: var(--ice-soft);
-  color: var(--ice);
-  border-radius: var(--radius-md);
-  font: 600 15px/23px var(--font-sans);
+.postage { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.postage .overline { color: var(--lantern-ink); }
+/* A paper stamp with perforated edges (a row of bites along each side), stuck on a little crooked */
+.stamp {
+  flex-shrink: 0;
+  width: 56px;
+  height: 64px;
+  padding: 5px;
+  background: var(--paper);
+  -webkit-mask: radial-gradient(circle 3px, #0000 96%, #000) -4px -4px / 8px 8px, linear-gradient(#000 0 0) content-box;
+  mask: radial-gradient(circle 3px, #0000 96%, #000) -4px -4px / 8px 8px, linear-gradient(#000 0 0) content-box;
+  transform: rotate(4deg);
 }
-.info-note .icon { flex-shrink: 0; }
+.stamp-face {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 100%;
+  border: 1.5px solid var(--cranberry);
+  color: var(--cranberry);
+}
+.stamp-face .icon { width: 20px; height: 20px; }
+.stamp-face .pixel-tag { font-size: 8px; line-height: 10px; }
 .action-terms { flex-basis: 100%; text-align: right; }
 
 /* Entrances (DESIGN.md §4): the letter and the Landing content appear once each time the page
@@ -699,7 +824,7 @@ body {
 }
 /* Each polaroid drops onto the paper after it, turning into its tilt */
 @keyframes polaroid-in { from { opacity: 0; transform: translateY(-10px) rotate(4deg) scale(1.04); } }
-:root:not([data-diorama-front]) .polaroid {
+:root:not([data-diorama-front]) .letter-page .polaroid {
   animation: polaroid-in 300ms var(--ease-out) both;
   animation-delay: calc(var(--after-card, 0ms) + 200ms + min(var(--i), 8) * 60ms);
 }
@@ -708,8 +833,8 @@ body {
   animation: rise-in 400ms var(--ease-out) both;
   animation-delay: calc(var(--i, 0) * 50ms);
 }
-/* Create: an added wish card rises in; a picked picture's thumbnail grows in each time it shows.
-   Removals fade out in the page script. */
+/* Create: the polaroids sit still. Only an added wish rises in, and a picked picture's thumbnail
+   grows in each time it shows. Removals fade out in the page script. */
 @keyframes card-in { from { opacity: 0; transform: translateY(8px); } }
 @keyframes thumb-in { from { opacity: 0; transform: scale(0.95); } }
 .wish.is-new { animation: card-in 200ms var(--ease-out) both; }
@@ -717,11 +842,11 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   :root:not([data-diorama-front]) .letter-page .paper,
-  :root:not([data-diorama-front]) .polaroid,
+  :root:not([data-diorama-front]) .letter-page .polaroid,
   :root:not([data-diorama-front]) .rise,
   .wish.is-new,
   .thumb { animation-name: fade-in; }
-  .polaroid-front, .polaroid-back, .polaroid-picture { transition: none; }
+  .polaroid-front, .polaroid-picture, .polaroid-second, .thumb-swap { transition: none; }
 }
 
 /* Narrow screens: the page scrolls instead of the paper. Right after sending, the share section
@@ -738,6 +863,8 @@ body {
   .site-main:has(> .create-page) { flex: 1 0 auto; }
   .create-middle { overflow: visible; margin: 0; padding: 0 0 var(--space-4); }
   .letter-draft { padding: var(--space-4); }
+  .wishes { grid-template-columns: repeat(auto-fill, minmax(116px, 1fr)); gap: var(--space-6) var(--space-3); }
+  .add-image-hint { display: none; }
   .action-bar {
     position: sticky;
     bottom: 0;
@@ -746,7 +873,8 @@ body {
     background: var(--surface-raised);
     border-radius: 0 0 var(--radius-xl) var(--radius-xl);
   }
-  .info-note { padding: var(--space-2) var(--space-3); font: 600 13px/18px var(--font-sans); }
+  .stamp, .postage .caption { display: none; }
+  .postage { flex-basis: 100%; }
   .action-bar .btn-primary { flex: 1; }
   .action-terms { text-align: center; }
 }

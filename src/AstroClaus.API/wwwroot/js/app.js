@@ -153,12 +153,13 @@ function initCreateForm({ onSend, onAdd, onFail }) {
   if (!form) return;
 
   const maxWishes = Number(form.dataset.maxWishes);
-  const maxImages = Number(form.dataset.maxImages);
   const maxImageBytes = Number(form.dataset.maxImageBytes);
   const list = $("#wishes");
   const template = $("#wish-template");
+  const addSlot = $("#add-wish-slot");
   const addButton = $("#add-wish");
   const wishCount = $("#wish-count");
+  const postageCount = $("#postage-count");
   const imageError = $("#image-error");
 
   // Message counter
@@ -172,28 +173,43 @@ function initCreateForm({ onSend, onAdd, onFail }) {
   const from = $("#from");
   from.addEventListener("input", () => ($("#sign-name").textContent = from.value.trim()));
 
-  // Wishes: numbered in order; the only wish can't be removed; Add a wish hides at the maximum.
-  // A wish fading out is already left out.
+  // Wishes are polaroids on the paper (DESIGN.md §4): numbered in order; the only wish can't be
+  // removed; Add a wish hides at the maximum. A wish fading out is already left out. Each change
+  // touches only its own polaroid; the others never move.
   const rows = () => $$("[data-wish]:not([data-leaving])", list);
+  const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
   const refresh = () => {
     rows().forEach((row, i) => {
       const remove = $("[data-remove-wish]", row);
-      $("[data-wish-label]", row).textContent = `Wish ${i + 1}`;
+      $("[data-wish-number]", row).textContent = i + 1;
+      $("[data-wish-name]", row).setAttribute("aria-label", `Wish ${i + 1}`);
       remove.setAttribute("aria-label", `Remove wish ${i + 1}`);
       remove.hidden = rows().length === 1;
     });
     wishCount.textContent = rows().length;
-    addButton.hidden = rows().length >= maxWishes;
+    addSlot.hidden = rows().length >= maxWishes;
+    // The postage strip: what's in the letter
+    const pictures = rows().reduce((n, row) => n + $$("[data-image]", row).filter((input) => input.files.length).length, 0);
+    postageCount.textContent = `${plural(rows().length, "wish", "wishes")} · ${plural(pictures, "picture", "pictures")}`;
+  };
+
+  // An empty link folds behind its Shop link button; one with a link or an error stays open. The
+  // button shows only while its field is folded (site.css), so a field that gets an error opens.
+  const foldLink = (row) => {
+    const field = $("[data-link]", row);
+    field.hidden = !field.value && !field.classList.contains("input-validation-error");
+    $("[data-open-link]", row).hidden = false;
   };
 
   addButton.addEventListener("click", () => {
     if (rows().length >= maxWishes) return;
-    list.append(template.content.cloneNode(true));
+    addSlot.before(template.content.cloneNode(true));
     const row = rows().at(-1);
     row.classList.add("is-new");
     showPictures(row);
+    foldLink(row);
     refresh();
-    $("input[type=text]", row).focus();
+    $("[data-wish-name]", row).focus();
     onAdd();
   });
 
@@ -209,32 +225,63 @@ function initCreateForm({ onSend, onAdd, onFail }) {
       row.remove();
     }
 
+    const openLink = e.target.closest("[data-open-link]");
+    if (openLink) {
+      const field = $("[data-link]", openLink.closest("[data-wish]"));
+      field.hidden = false;
+      field.focus();
+    }
+
+    // The second picture, on the first one's corner, swaps places with it, so the sent letter shows
+    // it first. Where the browser can't move pictures between fields, nothing happens.
+    const swap = e.target.closest("[data-swap-picture]");
+    if (swap) {
+      const [first, second] = $$("[data-image]", swap.closest("[data-wish]"));
+      const [a, b] = [first.files[0], second.files[0]];
+      if (setFile(first, b) && setFile(second, a)) {
+        setThumbnail(first.closest("[data-picture-slot]"), b);
+        setThumbnail(second.closest("[data-picture-slot]"), a);
+      }
+    }
+
     const removePicture = e.target.closest("[data-remove-picture]");
     if (removePicture) {
       const slot = removePicture.closest("[data-picture-slot]");
+      const row = slot.closest("[data-wish]");
+      const [first, second] = $$("[data-image]", row);
       const input = $("[data-image]", slot);
       await fadeOut($("[data-thumb]", slot));
-      input.value = "";
-      setThumbnail(slot, null);
-      showPictures(slot.closest("[data-wish]"));
-      input.focus();
+      // Removing the first picture moves the second one up into its place
+      if (input === first && second.files.length && setFile(first, second.files[0])) {
+        setThumbnail(first.closest("[data-picture-slot]"), first.files[0]);
+        second.value = "";
+        setThumbnail(second.closest("[data-picture-slot]"), null);
+      } else {
+        input.value = "";
+        setThumbnail(slot, null);
+      }
+      showPictures(row);
+      refresh();
+      $$("[data-image]", row).find((field) => !field.files.length)?.focus();
     }
   });
 
-  // Pictures: each picture field has a slot that shows its thumbnail once a picture is picked.
-  // Only the first empty slot shows its Add image tile.
+  // A wish's name stays one line of text: Enter does nothing (the server drops line breaks too)
+  list.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && e.target.matches("[data-wish-name]")) e.preventDefault();
+  });
+
+  // Pictures: each picture field has a slot that shows its thumbnail once a picture is picked:
+  // the first fills the photo, the second sits on its corner. Only the first empty slot shows its
+  // add tile (the empty photo, or the Another chip).
   const showPictures = (row) => {
     let tileShown = false;
-    let picked = 0;
     for (const slot of $$("[data-picture-slot]", row)) {
       const filled = $("[data-image]", slot).files.length > 0;
       $("[data-thumb]", slot).hidden = !filled;
       $(".add-image", slot).hidden = filled || tileShown;
-      if (filled) picked++;
-      else tileShown = true;
+      if (!filled) tileShown = true;
     }
-    $("[data-images-count]", row).textContent = `${picked} of ${maxImages} images`;
-    $("[data-images-hint]", row).hidden = picked > 0;
   };
 
   const setThumbnail = (slot, file) => {
@@ -262,6 +309,7 @@ function initCreateForm({ onSend, onAdd, onFail }) {
     }
     setThumbnail(input.closest("[data-picture-slot]"), file);
     showPictures(input.closest("[data-wish]"));
+    refresh();
     if (file) onAdd();
   };
   list.addEventListener("change", async (e) => {
@@ -274,7 +322,7 @@ function initCreateForm({ onSend, onAdd, onFail }) {
     shrinking.delete(job);
   });
 
-  rows().forEach(showPictures);
+  rows().forEach((row) => { showPictures(row); foldLink(row); });
 
   // Field errors: shown on load when the server drew the page with them (sent without this script),
   // and after a background send it refused. Editing a field clears its error.
@@ -409,6 +457,7 @@ function createFieldErrors(form) {
     note.id ||= `error-${field.name}`;
     note.className = "field-error field-validation-error";
     note.textContent = message;
+    field.hidden = false; // a folded field (a wish's link) opens to show its error
     field.classList.add(INVALID);
     field.setAttribute("aria-invalid", "true");
     field.setAttribute("aria-describedby", note.id);

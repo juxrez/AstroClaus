@@ -35,52 +35,60 @@
                 <span class="field-error" asp-validation-for="Form.From"></span>
             </div>
 
+            @* The whole letter on one sheet of paper, as it will look once sent: the message, the wishes
+               taped on as polaroids, then the sign-off, filled in with the nickname (design/DESIGN.md §4) *@
             <div class="group">
-                <label class="heading" for="message">Your message</label>
-                @* Written on the letter paper, as it will look once sent. The sign-off fills in with the nickname. *@
-                <div class="paper letter-draft" data-error-target>
-                    <p class="subtitle">Dear Santa,</p>
-                    <textarea class="hand draft-message" id="message" asp-for="Form.Message" rows="4"
-                              maxlength="@LetterLimits.MessageMax" placeholder="This year I have been very good..."></textarea>
-                    <p class="caption draft-count" aria-live="polite"><span id="message-count">0</span> / @LetterLimits.MessageMax</p>
+                <label class="heading" for="message">Your letter</label>
+                <div class="paper letter-draft">
+                    <div class="letter-message" data-error-target>
+                        <p class="subtitle">Dear Santa,</p>
+                        <textarea class="hand draft-message" id="message" asp-for="Form.Message" rows="4"
+                                  maxlength="@LetterLimits.MessageMax" placeholder="This year I have been very good..."></textarea>
+                        <p class="caption draft-count" aria-live="polite"><span id="message-count">0</span> / @LetterLimits.MessageMax</p>
+                    </div>
+                    <span class="field-error" asp-validation-for="Form.Message"></span>
+
+                    <section class="letter-wishes" aria-labelledby="wishes-title">
+                        <h2 class="overline" id="wishes-title">MY WISHES</h2>
+                        <ol class="polaroids wishes" id="wishes">
+                            @for (var i = 0; i < Model.Form.Wishes.Count; i++)
+                            {
+                                <partial name="_WishRow" model="@((i.ToString(), Model.Form.Wishes[i]))" />
+                            }
+                            @* Add a wish: an empty, dashed frame in the next spot on the paper *@
+                            <li class="add-wish" id="add-wish-slot">
+                                <button type="button" class="add-wish-tile" id="add-wish">
+                                    <span class="icon icon-plus" aria-hidden="true"></span>
+                                    <span class="body-strong">Add a wish</span>
+                                    <span class="caption" aria-live="polite"><span id="wish-count">@Model.Form.Wishes.Count</span> of @LetterLimits.MaxWishes</span>
+                                </button>
+                            </li>
+                        </ol>
+                        <p class="caption error-text" id="image-error" role="alert" hidden></p>
+                    </section>
+
                     <p class="hand sign-off" aria-hidden="true">With love, <span id="sign-name">@Model.Form.From</span></p>
                 </div>
-                <span class="field-error" asp-validation-for="Form.Message"></span>
             </div>
-
-            <section class="group" aria-labelledby="wishes-title">
-                <div class="wishes-head">
-                    <div>
-                        <h2 class="heading" id="wishes-title">Your wishes</h2>
-                        <p class="body muted">Add a picture of what you're wishing for, up to @LetterLimits.MaxImagesPerWish per wish.</p>
-                    </div>
-                    <p class="caption muted" aria-live="polite"><span id="wish-count">@Model.Form.Wishes.Count</span> of @LetterLimits.MaxWishes wishes</p>
-                </div>
-
-                <ol class="wishes" id="wishes">
-                    @for (var i = 0; i < Model.Form.Wishes.Count; i++)
-                    {
-                        <partial name="_WishRow" model="@((i.ToString(), Model.Form.Wishes[i]))" />
-                    }
-                </ol>
-
-                <button type="button" class="btn btn-secondary add-wish" id="add-wish">
-                    <span class="icon icon-plus" aria-hidden="true"></span>
-                    Add a wish
-                </button>
-                <p class="caption error-text" id="image-error" role="alert" hidden></p>
-            </section>
         </div>
 
         <template id="wish-template">
             <partial name="_WishRow" model="@(("__i__", new WishForm()))" />
         </template>
 
+        @* The postage strip: a stamp, where the letter is going and what's in it, then Send *@
         <div class="action-bar">
-            <p class="info-note">
-                <span class="icon icon-sparkle" aria-hidden="true"></span>
-                Once it's sent, your letter can't be changed. Give it one last read.
-            </p>
+            <div class="stamp" aria-hidden="true">
+                <span class="stamp-face">
+                    <span class="icon icon-snowflake"></span>
+                    <span class="pixel-tag">NP</span>
+                </span>
+            </div>
+            <div class="postage">
+                <p class="overline">TO: THE NORTH POLE</p>
+                <p class="body-strong" id="postage-count" aria-live="polite">@Model.Form.Wishes.Count @(Model.Form.Wishes.Count == 1 ? "wish" : "wishes")</p>
+                <p class="caption muted">Once it's sent, it can't be changed.</p>
+            </div>
             <button type="submit" class="btn btn-primary" id="send">
                 <span class="icon icon-send" aria-hidden="true"></span>
                 <span data-label>Send to Santa</span>

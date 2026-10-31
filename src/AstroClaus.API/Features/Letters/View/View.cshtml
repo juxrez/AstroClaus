@@ -52,8 +52,8 @@
             <p class="subtitle">Dear Santa,</p>
             <p class="hand">@letter.Message</p>
 
-            @* Each wish is a polaroid taped to the paper, two to a row (DESIGN.md §4). A wish with two
-               pictures is a small stack, the second peeking out from behind; one with none is a sticky note. *@
+            @* Each wish is a polaroid taped to the paper, two to a row (DESIGN.md §4). A wish's second
+               picture is a small polaroid on the first one's corner, as on Create; one with none is a sticky note. *@
             <h2 class="heading">My wishes</h2>
             <ol class="polaroids">
                 @for (var i = 0; i < letter.Wishes.Count; i++)
@@ -65,14 +65,18 @@
                         <div class="polaroid-front">
                             @if (pictures.Count > 0)
                             {
-                                @* Opens in the picture modal; without the page script, in a new tab *@
-                                <a class="polaroid-picture" href="@pictures[0]" target="_blank" rel="noopener" data-picture>
-                                    <img src="@pictures[0]" alt="Picture for @wish.Name" loading="lazy" />
-                                    @if (pictures.Count > 1)
+                                @* Each opens in the picture modal, in this order; without the page script, in a new tab *@
+                                <div class="polaroid-photo">
+                                    <a class="polaroid-picture" href="@pictures[0]" target="_blank" rel="noopener" data-picture>
+                                        <img src="@pictures[0]" alt="Picture for @wish.Name" loading="lazy" />
+                                    </a>
+                                    @for (var j = 1; j < pictures.Count; j++)
                                     {
-                                        <span class="polaroid-count"><span class="icon icon-image" aria-hidden="true"></span>@pictures.Count<span class="visually-hidden"> pictures</span></span>
+                                        <a class="polaroid-second" href="@pictures[j]" target="_blank" rel="noopener" data-picture>
+                                            <img src="@pictures[j]" alt="Picture @(j + 1) for @wish.Name" loading="lazy" />
+                                        </a>
                                     }
-                                </a>
+                                </div>
                             }
                             <div class="polaroid-caption">
                                 <span class="wish-number" aria-hidden="true">@(i + 1)</span>
@@ -86,16 +90,6 @@
                                 </a>
                             }
                         </div>
-                        @* The rest of the stack, after the front so the picture modal shows them in order.
-                           Keyboard users reach them with the modal's arrow keys. *@
-                        @for (var j = 1; j < pictures.Count; j++)
-                        {
-                            <div class="polaroid-back">
-                                <a class="polaroid-picture" href="@pictures[j]" target="_blank" rel="noopener" tabindex="-1" data-picture>
-                                    <img src="@pictures[j]" alt="Picture @(j + 1) for @wish.Name" loading="lazy" />
-                                </a>
-                            </div>
-                        }
                     </li>
                 }
             </ol>
