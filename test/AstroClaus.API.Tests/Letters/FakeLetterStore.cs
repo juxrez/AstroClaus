@@ -6,6 +6,7 @@ namespace AstroClaus.API.Tests.Letters;
 public sealed class FakeLetterStore : ILetterStore
 {
     private readonly Dictionary<string, Letter> _letters = [];
+    private readonly HashSet<string> _deleted = [];
 
     public int SaveCalls { get; private set; }
     public int GetCalls { get; private set; }
@@ -34,6 +35,9 @@ public sealed class FakeLetterStore : ILetterStore
     public Task DeleteAsync(Letter letter, CancellationToken ct)
     {
         _letters.Remove(letter.Id);
+        _deleted.Add(letter.Id);
         return Task.CompletedTask;
     }
+
+    public Task<bool> WasDeletedAsync(string id, CancellationToken ct) => Task.FromResult(_deleted.Contains(id));
 }

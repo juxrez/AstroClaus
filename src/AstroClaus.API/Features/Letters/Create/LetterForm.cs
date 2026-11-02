@@ -14,6 +14,9 @@ public class LetterForm
     [StringLength(LetterLimits.MessageMax, ErrorMessage = "Messages can be up to {1} characters.")]
     public string Message { get; set => field = LetterText.CleanMessage(value); } = "";
 
+    /// <summary>The sender's box: "I'm a grown-up, or writing this with one". Checked in <see cref="CreateModel"/>.</summary>
+    public bool GrownUp { get; set; }
+
     [MinLength(1, ErrorMessage = "Add at least one wish.")]
     [MaxLength(LetterLimits.MaxWishes, ErrorMessage = "A letter can hold up to {1} wishes.")]
     public List<WishForm> Wishes { get; set; } = [];

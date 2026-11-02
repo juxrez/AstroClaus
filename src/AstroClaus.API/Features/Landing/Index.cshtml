@@ -8,6 +8,23 @@
     // Astro greets whoever arrives; on phones he shows in a window above the panel (design/DESIGN.md §2, rules 2 and 13).
     ViewData["Diorama"] = "greet";
     ViewData["SceneWindow"] = true;
+
+    // Tells search engines the site's name, so results show "Astro Claus" rather than the domain
+    var website = new Dictionary<string, object>
+    {
+        ["@context"] = "https://schema.org",
+        ["@type"] = "WebSite",
+        ["name"] = "Astro Claus",
+        ["alternateName"] = "AstroClaus",
+        ["url"] = $"{Request.Scheme}://{Request.Host}{Request.PathBase}/",
+        ["inLanguage"] = Languages.IsSpanish ? "es" : "en",
+        ["description"] = ViewData["Description"]!
+    };
+}
+
+@section Head {
+    @* "!" keeps the script tag helper from writing the "+" as "&#x2B;" *@
+    <!script type="application/ld+json">@Json.Serialize(website)</!script>
 }
 
 @* .rise pieces appear one after another; --i is their place in that order *@
@@ -24,6 +41,7 @@
             </a>
             <a class="landing-example" href="~/letter/example">@T["See an example letter"]</a>
         </div>
+        <p class="caption muted rise" style="--i: 3">@T["A family activity: write it together with a grown-up."]</p>
     </div>
 
     <ol class="steps">

@@ -4,6 +4,7 @@
 @{
     ViewData["Title"] = T["Write your letter"].Value;
     ViewData["Description"] = T["Write your letter to Santa: your message, your wishes, a picture and a shop link for each. Astro carries it to the North Pole and you get one link to share."].Value;
+    ViewData["Canonical"] = "/write";
     // Astro sits and waits while the letter is written (design/DESIGN.md §2, rule 2).
     ViewData["Diorama"] = "wait";
     // Switching language here would lose the letter being written, and the header has no room beside Back
@@ -78,8 +79,15 @@
             <partial name="_WishRow" model="@(("__i__", new WishForm()))" />
         </template>
 
-        @* The postage strip: a stamp, where the letter is going and what's in it, then Send *@
+        @* The postage strip: a grown-up confirms first, then a stamp, where the letter is going and
+           what's in it, and Send. The box is asked for every letter, never remembered (Terms). Send
+           stays pressable: without the box ticked, the box shows its error like any field. *@
         <div class="action-bar">
+            <label class="grown-up caption" data-error-target>
+                <input type="checkbox" name="Form.GrownUp" value="true" @(Model.Form.GrownUp ? "checked" : null) class="@(ViewContext.ViewData.ModelState.TryGetValue("Form.GrownUp", out var grownUpState) && grownUpState.Errors.Count > 0 ? "input-validation-error" : null)" />
+                <span>@T["I'm a grown-up, or writing this with one, and I agree to"] <button type="button" class="link" data-open-modal="terms-modal">@T["the terms"]</button>.</span>
+            </label>
+            <span class="field-error" asp-validation-for="Form.GrownUp"></span>
             <div class="stamp" aria-hidden="true">
                 <span class="stamp-face">
                     <span class="icon icon-snowflake"></span>
@@ -95,7 +103,6 @@
                 <span class="icon icon-send" aria-hidden="true"></span>
                 <span data-label>@T["Send to Santa"]</span>
             </button>
-            <p class="caption muted action-terms">@T["By sending, you agree to"] <button type="button" class="link" data-open-modal="terms-modal">@T["the terms"]</button>.</p>
         </div>
     </form>
 </section>

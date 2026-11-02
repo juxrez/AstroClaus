@@ -26,6 +26,12 @@ public class ViewModel(ILetterStore store) : PageModel
             Letter = await store.GetAsync(id, ct);
         }
 
+        // A letter its sender deleted: its link shows the fireplace (Letters/Gone)
+        if (Letter is null && LetterIdGenerator.IsValid(id) && await store.WasDeletedAsync(id, ct))
+        {
+            return Redirect($"{Request.PathBase}/letter/{id}/gone");
+        }
+
         if (Letter is null)
         {
             Response.StatusCode = StatusCodes.Status404NotFound;

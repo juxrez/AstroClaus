@@ -24,6 +24,7 @@ public class CreateModelTests
         {
             From = "  Ana ",
             Message = " Hello Santa ",
+            GrownUp = true,
             Wishes =
             [
                 new WishForm { Name = " a red bike ", Image1 = Png() },
@@ -137,6 +138,7 @@ public class CreateModelTests
     {
         From = "Ana",
         Message = "Hello Santa",
+        GrownUp = true,
         Wishes = [new WishForm { Name = "a red bike", Image1 = picture }]
     };
 

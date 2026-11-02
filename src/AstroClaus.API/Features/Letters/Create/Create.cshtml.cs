@@ -11,6 +11,7 @@ public class CreateModel(ILetterStore store, IStringLocalizer<SiteText> words) :
 {
     private const string StackedMarksMessage = "Some letters here have too many marks stacked on them. Please use regular letters.";
     private const string ContactDetailsMessage = "Anyone with the link can read your letter, so please leave out email addresses and phone numbers.";
+    private const string GrownUpMessage = "A grown-up needs to check this box.";
 
     [BindProperty] public LetterForm Form { get; set; } = new();
 
@@ -65,6 +66,9 @@ public class CreateModel(ILetterStore store, IStringLocalizer<SiteText> words) :
     /// </summary>
     private void CheckText()
     {
+        // The site is meant for grown-ups, or kids writing with one: a grown-up confirms it for every letter
+        if (!Form.GrownUp) ModelState.AddModelError($"{nameof(Form)}.{nameof(LetterForm.GrownUp)}", words[GrownUpMessage]);
+
         CheckText(nameof(Form.From), Form.From);
         CheckText(nameof(Form.Message), Form.Message);
         for (var i = 0; i < Form.Wishes.Count; i++)

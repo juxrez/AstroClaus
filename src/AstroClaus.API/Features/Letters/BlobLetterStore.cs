@@ -15,6 +15,12 @@ public sealed class BlobLetterStore(BlobServiceClient service, ILogger<BlobLette
 {
     private const string ContainerName = "letters";
     private const string LetterFileName = "letter.json";
+
+    /// <summary>
+    /// Left in a deleted letter's folder, empty: it only says the letter was deleted, so its link can say
+    /// so (Letters/Gone). The storage's 90-day lifecycle rule removes it like any other file.
+    /// </summary>
+    private const string DeletedMarkerName = "deleted";
     private readonly ILogger<BlobLetterStore> _logger = logger;
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
@@ -80,7 +86,8 @@ public sealed class BlobLetterStore(BlobServiceClient service, ILogger<BlobLette
 
     /// <summary>
     /// Deletes the pictures first and the letter last, the reverse of saving: if it stops halfway, the
-    /// letter is still there, so deleting it again finishes the job.
+    /// letter is still there, so deleting it again finishes the job. The deleted marker goes in before the
+    /// letter comes out, so the link always shows either the letter or that it was deleted.
     /// </summary>
     public async Task DeleteAsync(Letter letter, CancellationToken ct)
     {
@@ -89,7 +96,14 @@ public sealed class BlobLetterStore(BlobServiceClient service, ILogger<BlobLette
         {
             await GetBlobPath(container, letter.Id, image).DeleteIfExistsAsync(cancellationToken: ct);
         }
+        await GetBlobPath(container, letter.Id, DeletedMarkerName).UploadAsync(BinaryData.Empty, overwrite: true, ct);
         await GetBlobPath(container, letter.Id, LetterFileName).DeleteIfExistsAsync(cancellationToken: ct);
+    }
+
+    public async Task<bool> WasDeletedAsync(string id, CancellationToken ct)
+    {
+        var container = service.GetBlobContainerClient(ContainerName);
+        return await GetBlobPath(container, id, DeletedMarkerName).ExistsAsync(ct);
     }
 
     /// <summary>

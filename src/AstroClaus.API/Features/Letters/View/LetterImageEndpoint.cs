@@ -17,6 +17,8 @@ public static class LetterImageEndpoint
 
             // Letters never change, so the picture can be cached for good.
             http.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
+            // Like its letter, a picture stays out of search results (image search included)
+            http.Response.Headers["X-Robots-Tag"] = "noindex";
             return Results.Stream(image.Content, image.ContentType);
         });
 }

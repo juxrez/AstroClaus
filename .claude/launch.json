@@ -12,6 +12,12 @@
       "runtimeExecutable": "dotnet",
       "runtimeArgs": ["run", "--project", "src/AstroClaus.API", "--launch-profile", "http", "--artifacts-path", "../AstroClaus-side-build", "--", "--urls", "http://localhost:5161"],
       "port": 5161
+    },
+    {
+      "name": "astroclaus-seo",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "src/AstroClaus.API", "--launch-profile", "http", "--artifacts-path", "../AstroClaus-seo-build", "--", "--urls", "http://localhost:5171"],
+      "port": 5171
     }
   ]
 }

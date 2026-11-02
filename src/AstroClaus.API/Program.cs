@@ -38,6 +38,7 @@ builder.Services.AddSingleton<ILetterStore, BlobLetterStore>();
 var app = builder.Build();
 
 app.UseForwardedHeaders();
+app.UseOneHost();
 app.UseSafetyHeaders();
 app.UseLanguages();
 

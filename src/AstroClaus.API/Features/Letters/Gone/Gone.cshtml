@@ -1,0 +1,20 @@
+@page "/letter/{id}/gone"
+@model AstroClaus.API.Features.Letters.Gone.GoneModel
+@{
+    ViewData["Title"] = T["Into the fireplace"].Value;
+    ViewData["NoIndex"] = true;
+    // No snowy scene and no Astro here: a warm room with a fireplace (site.css, data-diorama="none")
+    ViewData["Diorama"] = "none";
+}
+
+<section class="page gone-page">
+    <div class="fireplace">
+        <partial name="_Fireplace" />
+    </div>
+    <h1 class="title">@T["Into the fireplace"]</h1>
+    <p class="body muted">@T["This letter was deleted and can't be opened anymore."]</p>
+    <a class="btn btn-primary" href="~/write">
+        <span class="icon icon-write" aria-hidden="true"></span>
+        @T["Write a new letter"]
+    </a>
+</section>

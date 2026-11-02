@@ -533,7 +533,7 @@ function shake(element) {
 // ---- Delete my letter (view page) -------------------------------------------
 // The key that deletes a letter is kept only in the browser that sent it: Create hands it over with
 // the letter page. The letter page shows Delete my letter only where it finds that key, and asks
-// first (#delete-modal). Once deleted, the letter's address shows that it's gone.
+// first (#delete-modal). Once deleted, the letter goes into the fireplace (Letters/Gone).
 const deleteKeyName = (id) => `letter-delete-key:${id}`;
 
 function rememberDeleteKey(id, key) {
@@ -569,7 +569,7 @@ function initDeleteLetter() {
       const response = await fetch(form.action, { method: "POST", body: new FormData(form), signal: AbortSignal.timeout(SEND_TIMEOUT_MS) });
       if (response.ok) {
         try { localStorage.removeItem(name); } catch { /* already gone */ }
-        location.replace(location.pathname);
+        location.replace(`${location.pathname}/gone`); // into the fireplace (Letters/Gone)
         return;
       }
       console.error(`The letter wasn't deleted: the server answered ${response.status}`);
@@ -609,7 +609,8 @@ function fadeOut(element) {
     { duration: 150, easing: "ease-out" }).finished;
 }
 
-const diorama = startDiorama();
+// Every page has the scene except a deleted letter's fireplace (data-diorama="none")
+const diorama = document.getElementById("diorama") ? startDiorama() : {};
 forgetJustSent();
 initModals();
 initSupportModal();

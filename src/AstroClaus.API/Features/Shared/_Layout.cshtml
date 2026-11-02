@@ -17,7 +17,7 @@
     }.ToDictionary(english => english, english => T[english].Value);
 }
 <!DOCTYPE html>
-@* ViewData["Diorama"]: "delivery" on the page a letter was just sent to, "play" on a letter opened by a reader, "greet" on the landing, "wait" on Create, otherwise the plain scene (design/DESIGN.md §2). *@
+@* ViewData["Diorama"]: "delivery" on the page a letter was just sent to, "play" on a letter opened by a reader, "greet" on the landing, "wait" on Create, "none" for no scene at all (a deleted letter's fireplace), otherwise the plain scene (design/DESIGN.md §2). *@
 <html lang="@(spanish ? "es" : "en")" data-diorama="@(ViewData["Diorama"] as string ?? "plain")">
 <head>
     <meta charset="utf-8" />
@@ -52,6 +52,8 @@
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="@T["Astro, a pixel-art reindeer pup, standing in the snow under the night sky"]" />
     <meta name="twitter:card" content="summary_large_image" />
+    @* Head: anything else a page adds for search engines, such as Landing's structured data *@
+    @await RenderSectionAsync("Head", required: false)
     @* Astro's face, cut from his sprite. The 180px one is for phones' home screens. *@
     <link rel="icon" href="~/favicon.svg" type="image/svg+xml" asp-append-version="true" />
     <link rel="apple-touch-icon" href="~/apple-touch-icon.png" asp-append-version="true" />
@@ -72,6 +74,7 @@
                 sessionStorage.setItem("diorama:arrived", "1");
             } catch (e) { /* storage unavailable: no opening */ }
 
+            if (root.getAttribute("data-diorama") === "none") return;
             if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
             if (!firstArrival && root.getAttribute("data-diorama") !== "delivery") return;
 
@@ -83,9 +86,12 @@
     <script type="importmap"></script>
 </head>
 <body>
-    <div class="diorama" aria-hidden="true">
-        <canvas id="diorama" width="320" height="180"></canvas>
-    </div>
+    @if (ViewData["Diorama"] as string != "none")
+    {
+        <div class="diorama" aria-hidden="true">
+            <canvas id="diorama" width="320" height="180"></canvas>
+        </div>
+    }
 
     @* ViewData["SceneWindow"]: on narrow screens, keep the top of the screen clear so Astro shows above
        the panel (design/DESIGN.md §2, rule 13). Hidden on wider screens. *@

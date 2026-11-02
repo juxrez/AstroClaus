@@ -124,8 +124,20 @@
   <data name="Send to Santa" xml:space="preserve">
     <value>Enviar a Santa</value>
   </data>
-  <data name="By sending, you agree to" xml:space="preserve">
-    <value>Al enviarla, aceptas</value>
+  <data name="I'm a grown-up, or writing this with one, and I agree to" xml:space="preserve">
+    <value>Soy adulto, o estoy escribiendo con uno, y acepto</value>
+  </data>
+  <data name="A grown-up needs to check this box." xml:space="preserve">
+    <value>Un adulto necesita marcar esta casilla.</value>
+  </data>
+  <data name="A family activity: write it together with a grown-up." xml:space="preserve">
+    <value>Una actividad en familia: escríbanla junto con un adulto.</value>
+  </data>
+  <data name="For grown-ups" xml:space="preserve">
+    <value>Para los adultos</value>
+  </data>
+  <data name="Astro Claus is meant for adults, or for kids writing with an adult who helps them. A grown-up confirms this every time a letter is sent." xml:space="preserve">
+    <value>Astro Claus está pensado para adultos, o para niños que escriben con un adulto que los ayuda. Un adulto lo confirma cada vez que se envía una carta.</value>
   </data>
   <data name="the terms" xml:space="preserve">
     <value>los términos</value>
@@ -384,6 +396,15 @@
   </data>
   <data name="Sending…" xml:space="preserve">
     <value>Enviando…</value>
+  </data>
+  <data name="Into the fireplace" xml:space="preserve">
+    <value>Directo a la chimenea</value>
+  </data>
+  <data name="This letter was deleted and can't be opened anymore." xml:space="preserve">
+    <value>Esta carta fue borrada y ya no se puede abrir.</value>
+  </data>
+  <data name="Write a new letter" xml:space="preserve">
+    <value>Escribir una carta nueva</value>
   </data>
   <data name="Deleting…" xml:space="preserve">
     <value>Borrando…</value>
