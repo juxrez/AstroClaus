@@ -1,3 +1,8 @@
 @using AstroClaus.API
+@using AstroClaus.API.Features.Language
+@using AstroClaus.API.Features.Shared
+@using Microsoft.Extensions.Localization
 @namespace AstroClaus.API.Features
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@* T["English words"]: those words in the page's language (SiteText) *@
+@inject IStringLocalizer<SiteText> T

@@ -2,12 +2,23 @@
     var title = ViewData["Title"] is string t ? $"{t} · Astro Claus" : "Astro Claus";
     var shareTitle = ViewData["ShareTitle"] as string ?? title;
     var description = ViewData["Description"] as string
-        ?? "Write a letter to Santa, and Astro the reindeer pup carries it to the North Pole. No account needed.";
+        ?? T["Write a letter to Santa, and Astro the reindeer pup carries it to the North Pole. No account needed."].Value;
     var site = $"{Context.Request.Scheme}://{Context.Request.Host}";
+    var spanish = Languages.IsSpanish;
+    // This page in the other language, through the toggle (Languages)
+    var toggle = $"{Context.Request.PathBase}{Context.Request.Path}?{Languages.ToggleParameter}={(spanish ? "en" : "es")}";
+
+    // Words the page script writes (js/words.js), in the page's language
+    var scriptWords = new[]
+    {
+        "Link copied", "Copy link", "A letter to Santa", "{0} of {1}", "Wish {0}", "Remove wish {0}",
+        "{0} wish", "{0} wishes", "{0} picture", "{0} pictures", "Remove picture", "Remove picture {0}",
+        "{0} is too big. Try a different picture.", "Sending…", "Deleting…", "Dear Santa,", "With love", "With love, {0}"
+    }.ToDictionary(english => english, english => T[english].Value);
 }
 <!DOCTYPE html>
 @* ViewData["Diorama"]: "delivery" on the page a letter was just sent to, "play" on a letter opened by a reader, "greet" on the landing, "wait" on Create, otherwise the plain scene (design/DESIGN.md §2). *@
-<html lang="en" data-diorama="@(ViewData["Diorama"] as string ?? "plain")">
+<html lang="@(spanish ? "es" : "en")" data-diorama="@(ViewData["Diorama"] as string ?? "plain")">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -21,26 +32,31 @@
     {
         <meta name="robots" content="noindex" />
     }
+    @* A page with a canonical address names itself in both languages, so search engines list each
+       language's page for its own readers *@
     @if (ViewData["Canonical"] is string canonical)
     {
-        <link rel="canonical" href="@(site + canonical)" />
+        <link rel="canonical" href="@(site + Context.Request.PathBase + canonical)" />
+        <link rel="alternate" hreflang="en" href="@(site + canonical)" />
+        <link rel="alternate" hreflang="es" href="@(site + Languages.SpanishBase + canonical)" />
+        <link rel="alternate" hreflang="x-default" href="@(site + canonical)" />
     }
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Astro Claus" />
+    <meta property="og:locale" content="@(spanish ? "es_LA" : "en_US")" />
     <meta property="og:title" content="@shareTitle" />
     <meta property="og:description" content="@description" />
-    <meta property="og:url" content="@(site + Context.Request.Path)" />
-    <meta property="og:image" content="@(site + "/share-preview.png")" />
+    <meta property="og:url" content="@(site + Context.Request.PathBase + Context.Request.Path)" />
+    <meta property="og:image" content="@(site + (spanish ? "/share-preview-es.png" : "/share-preview.png"))" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Astro, a pixel-art reindeer pup, standing in the snow under the night sky" />
+    <meta property="og:image:alt" content="@T["Astro, a pixel-art reindeer pup, standing in the snow under the night sky"]" />
     <meta name="twitter:card" content="summary_large_image" />
     @* Astro's face, cut from his sprite. The 180px one is for phones' home screens. *@
     <link rel="icon" href="~/favicon.svg" type="image/svg+xml" asp-append-version="true" />
     <link rel="apple-touch-icon" href="~/apple-touch-icon.png" asp-append-version="true" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Nunito:wght@400;600;700&family=Patrick+Hand&family=Press+Start+2P&display=swap" rel="stylesheet" />
+    @* Fonts come from this site, not Google, so no visitor's address goes to Google (css/fonts.css) *@
+    <link rel="stylesheet" href="~/css/fonts.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/tokens.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 
@@ -79,10 +95,23 @@
     }
 
     <div class="panel" id="panel">
-        @* HeaderStart: an optional link on the left of the wordmark, such as Create's Back link *@
+        @* HeaderStart: an optional link on the left of the wordmark, such as Create's Back link.
+           On the right, the language toggle: this page in the other language. A page can leave it out
+           (ViewData["NoLanguageToggle"]): Create, where switching would lose the letter being written. *@
         <header class="site-header">
             @await RenderSectionAsync("HeaderStart", required: false)
-            <a class="logo" href="/">ASTRO CLAUS</a>
+            <a class="logo" href="~/">ASTRO CLAUS</a>
+            @if (ViewData["NoLanguageToggle"] is not true)
+            {
+                if (spanish)
+                {
+                    <a class="language-toggle" href="@toggle" lang="en" hreflang="en" rel="nofollow"><span aria-hidden="true">EN</span><span class="visually-hidden">View in English</span></a>
+                }
+                else
+                {
+                    <a class="language-toggle" href="@toggle" lang="es" hreflang="es" rel="nofollow"><span aria-hidden="true">ES</span><span class="visually-hidden">Ver en español</span></a>
+                }
+            }
         </header>
 
         <main class="site-main">
@@ -92,7 +121,7 @@
         <footer class="site-footer caption">
             @await RenderSectionAsync("FooterNote", required: false)
             <span class="icon icon-snowflake" aria-hidden="true"></span>
-            <button type="button" class="link" data-open-modal="terms-modal">Terms</button>
+            <button type="button" class="link" data-open-modal="terms-modal">@T["Terms"]</button>
             @* Ko-fi gets its own line under the rest *@
             <span class="footer-break" aria-hidden="true"></span>
             @* For grown-ups: a link like Terms, with only a small pixel heart. Opens Ko-fi's form in the
@@ -102,7 +131,7 @@
                     <path d="M2 1h2v1h1V1h2v1h1v2H7v1H6v1H5v1H4V6H3V5H2V4H1V2h1z" />
                     <path fill="#fff" d="M2 2h1v1H2z" />
                 </svg>
-                <span>Help keep Astro online</span>
+                <span>@T["Help keep Astro online"]</span>
             </a>
         </footer>
     </div>
@@ -112,13 +141,14 @@
     <div class="sending-card" role="status">
         <p>
             <span class="icon icon-envelope" aria-hidden="true"></span>
-            <span>Astro is taking your letter to the North Pole<span class="sending-dots" aria-hidden="true"><span>.</span><span>.</span><span>.</span></span></span>
+            <span>@T["Astro is taking your letter to the North Pole"]<span class="sending-dots" aria-hidden="true"><span>.</span><span>.</span><span>.</span></span></span>
         </p>
     </div>
 
     <partial name="_TermsModal" />
     <partial name="_SupportModal" />
 
+    <script type="application/json" id="script-words">@Json.Serialize(scriptWords)</script>
     @* One entry point for scripts. *@
     <script type="module" src="~/js/app.js" asp-append-version="true"></script>
 </body>

@@ -6,6 +6,7 @@
 
 import { startDiorama } from "./diorama/diorama.js";
 import { shrinkPicture } from "./shrink-picture.js";
+import { say } from "./words.js";
 
 const SEND_TIMEOUT_MS = 60000; // a letter not sent by then counts as failed (DESIGN.md §2, rule 6)
 
@@ -76,7 +77,7 @@ function initPictureModal() {
     const wish = picture.closest("[data-letter-wish]");
     const wishLink = $("[data-wish-link]", wish);
     title.textContent = $("[data-wish-name]", wish).textContent;
-    count.textContent = pictures.length > 1 ? `${at + 1} of ${pictures.length}` : "";
+    count.textContent = pictures.length > 1 ? say("{0} of {1}", at + 1, pictures.length) : "";
     findIt.hidden = !wishLink;
     if (wishLink) findIt.href = wishLink.href;
 
@@ -130,15 +131,15 @@ function initShare() {
       document.execCommand("copy");
     }
     const label = $("[data-label]", copy);
-    label.textContent = "Link copied";
-    setTimeout(() => (label.textContent = "Copy link"), 2000);
+    label.textContent = say("Link copied");
+    setTimeout(() => (label.textContent = say("Copy link")), 2000);
   });
 
   const nativeShare = $("#native-share");
   if (navigator.share) {
     nativeShare.hidden = false;
     nativeShare.addEventListener("click", () =>
-      navigator.share({ title: "A letter to Santa", url: $("#share-link").value }).catch(() => {}));
+      navigator.share({ title: say("A letter to Santa"), url: $("#share-link").value }).catch(() => {}));
   }
 }
 
@@ -177,20 +178,20 @@ function initCreateForm({ onSend, onAdd, onFail }) {
   // removed; Add a wish hides at the maximum. A wish fading out is already left out. Each change
   // touches only its own polaroid; the others never move.
   const rows = () => $$("[data-wish]:not([data-leaving])", list);
-  const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+  const plural = (n, one, many) => say(n === 1 ? one : many, n);
   const refresh = () => {
     rows().forEach((row, i) => {
       const remove = $("[data-remove-wish]", row);
       $("[data-wish-number]", row).textContent = i + 1;
-      $("[data-wish-name]", row).setAttribute("aria-label", `Wish ${i + 1}`);
-      remove.setAttribute("aria-label", `Remove wish ${i + 1}`);
+      $("[data-wish-name]", row).setAttribute("aria-label", say("Wish {0}", i + 1));
+      remove.setAttribute("aria-label", say("Remove wish {0}", i + 1));
       remove.hidden = rows().length === 1;
     });
     wishCount.textContent = rows().length;
     addSlot.hidden = rows().length >= maxWishes;
     // The postage strip: what's in the letter
     const pictures = rows().reduce((n, row) => n + $$("[data-image]", row).filter((input) => input.files.length).length, 0);
-    postageCount.textContent = `${plural(rows().length, "wish", "wishes")} · ${plural(pictures, "picture", "pictures")}`;
+    postageCount.textContent = `${plural(rows().length, "{0} wish", "{0} wishes")} · ${plural(pictures, "{0} picture", "{0} pictures")}`;
   };
 
   // An empty link folds behind its Shop link button; one with a link or an error stays open. The
@@ -289,7 +290,7 @@ function initCreateForm({ onSend, onAdd, onFail }) {
     if (image.src) URL.revokeObjectURL(image.src);
     image.removeAttribute("src");
     if (file) image.src = URL.createObjectURL(file);
-    $("[data-remove-picture]", slot).setAttribute("aria-label", file ? `Remove picture ${file.name}` : "Remove picture");
+    $("[data-remove-picture]", slot).setAttribute("aria-label", file ? say("Remove picture {0}", file.name) : say("Remove picture"));
   };
 
   // A picked picture is shrunk first (shrink-picture.js), and refused only if it is still over the
@@ -303,7 +304,7 @@ function initCreateForm({ onSend, onAdd, onFail }) {
 
     if (file && file.size > maxImageBytes) {
       input.value = "";
-      imageError.textContent = `${picked.name} is too big. Try a different picture.`;
+      imageError.textContent = say("{0} is too big. Try a different picture.", picked.name);
       imageError.hidden = false;
       file = null;
     }
@@ -341,7 +342,7 @@ function initCreateForm({ onSend, onAdd, onFail }) {
     document.documentElement.toggleAttribute("data-sending", sending);
     if (sending) send.setAttribute("aria-disabled", "true");
     else send.removeAttribute("aria-disabled");
-    sendLabel.textContent = sending ? "Sending…" : sendText;
+    sendLabel.textContent = sending ? say("Sending…") : sendText;
   };
 
   // The server checks the text first, so the letter only folds and flies to Astro if it will be
@@ -373,6 +374,7 @@ function initCreateForm({ onSend, onAdd, onFail }) {
     const caught = flying ? onSend({ from: from.value.trim(), message: message.value.trim() }) : null;
     const [result] = await Promise.all([upload(form), caught]);
     if (result?.letterPage) {
+      rememberDeleteKey(result.id, result.deleteKey);
       location.assign(result.letterPage);
       return;
     }
@@ -410,7 +412,7 @@ async function checkText(form) {
   return null;
 }
 
-// Sends the letter. Resolves with { letterPage } once sent, { errors } (field name -> messages) if
+// Sends the letter. Resolves with { letterPage, id, deleteKey } once sent, { errors } (field name -> messages) if
 // the server refused something in the letter, or null if it wasn't sent for any other reason: no
 // answer within SEND_TIMEOUT_MS, no connection, or a server error.
 async function upload(form) {
@@ -418,10 +420,14 @@ async function upload(form) {
     const response = await fetch(form.action, {
       method: "POST",
       body: new FormData(form),
-      headers: { Accept: "text/html, application/json" }, // refusals come back as JSON (Create.cshtml.cs)
+      headers: { Accept: "text/html, application/json" }, // answers come back as JSON (Create.cshtml.cs)
       signal: AbortSignal.timeout(SEND_TIMEOUT_MS)
     });
-    if (response.ok && response.redirected && new URL(response.url).pathname.startsWith("/letter/")) return { letterPage: response.url };
+    // Sent: the server answers with the letter's page and its delete key (Create.cshtml.cs)
+    if (response.ok && response.headers.get("content-type")?.includes("json")) {
+      const { letterPage, id, deleteKey } = await response.json();
+      if (letterPage) return { letterPage, id, deleteKey };
+    }
     if (response.status === 400 && response.headers.get("content-type")?.includes("json")) {
       const { errors } = await response.json();
       if (errors) return { errors };
@@ -524,6 +530,58 @@ function shake(element) {
   element.addEventListener("animationend", () => element.classList.remove("shake"), { once: true });
 }
 
+// ---- Delete my letter (view page) -------------------------------------------
+// The key that deletes a letter is kept only in the browser that sent it: Create hands it over with
+// the letter page. The letter page shows Delete my letter only where it finds that key, and asks
+// first (#delete-modal). Once deleted, the letter's address shows that it's gone.
+const deleteKeyName = (id) => `letter-delete-key:${id}`;
+
+function rememberDeleteKey(id, key) {
+  try {
+    if (id && key) localStorage.setItem(deleteKeyName(id), key);
+  } catch { /* storage unavailable: the letter just can't be deleted from here */ }
+}
+
+function initDeleteLetter() {
+  const form = $("[data-delete-letter]");
+  if (!form) return;
+  const name = deleteKeyName(form.dataset.deleteLetter);
+  let key = null;
+  try { key = localStorage.getItem(name); } catch { /* no storage, no key */ }
+  if (!key) return;
+
+  $("[data-delete-key]", form).value = key;
+  form.hidden = false;
+
+  const modal = $("#delete-modal");
+  const button = $("[data-confirm-delete]", modal);
+  const label = $("[data-label]", button);
+  const labelText = label.textContent;
+  const failed = $("[data-delete-failed]", modal);
+  modal.addEventListener("close", () => (failed.hidden = true));
+
+  button.addEventListener("click", async () => {
+    if (button.hasAttribute("aria-disabled")) return;
+    button.setAttribute("aria-disabled", "true");
+    label.textContent = say("Deleting…");
+    failed.hidden = true;
+    try {
+      const response = await fetch(form.action, { method: "POST", body: new FormData(form), signal: AbortSignal.timeout(SEND_TIMEOUT_MS) });
+      if (response.ok) {
+        try { localStorage.removeItem(name); } catch { /* already gone */ }
+        location.replace(location.pathname);
+        return;
+      }
+      console.error(`The letter wasn't deleted: the server answered ${response.status}`);
+    } catch (error) {
+      console.error("The letter wasn't deleted", error);
+    }
+    button.removeAttribute("aria-disabled");
+    label.textContent = labelText;
+    failed.hidden = false;
+  });
+}
+
 // Only the page change after Send crossfades (site.css); every other page change stays a plain cut.
 function keepPageChangesPlain() {
   addEventListener("pageswap", (e) => {
@@ -557,5 +615,6 @@ initModals();
 initSupportModal();
 initPictureModal();
 initShare();
+initDeleteLetter();
 initCreateForm({ onSend: diorama.sendLetter, onAdd: diorama.cheer, onFail: diorama.returnLetter });
 keepPageChangesPlain();

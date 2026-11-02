@@ -235,6 +235,16 @@ body {
 .site-header { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding-bottom: var(--space-6); }
 .site-header .logo { grid-column: 2; }
 .back-link { grid-column: 1; justify-self: start; display: inline-flex; align-items: center; gap: var(--space-1); min-height: 44px; font-weight: 700; text-decoration: none; }
+/* The language toggle: a small pill naming the other language, linking to this page in it */
+.language-toggle { position: relative; grid-column: 3; justify-self: end; display: inline-flex; align-items: center; min-height: 32px; padding: 0 var(--space-2); border: 1px solid var(--line); border-radius: var(--radius-full); font: 400 10px/16px var(--font-pixel); letter-spacing: 0.04em; color: var(--ink-muted); text-decoration: none; }
+/* The touch target reaches 44px without making the pill bigger */
+.language-toggle::after { content: ""; position: absolute; inset: -7px -4px; }
+/* Phones: too narrow to centre the wordmark with the toggle beside it, so it centres in the space left of it */
+@media (max-width: 400px) {
+  .site-header:has(.language-toggle) { grid-template-columns: 1fr auto; gap: var(--space-2); }
+  .site-header:has(.language-toggle) .logo { grid-column: 1; justify-self: center; }
+  .language-toggle { grid-column: 2; }
+}
 /* Too narrow to centre the wordmark beside the link: link on the left, wordmark on the right */
 @media (max-width: 480px) {
   .site-header:has(.back-link) { grid-template-columns: auto 1fr; gap: var(--space-3); }
@@ -287,6 +297,9 @@ body {
 .btn-secondary:not(:disabled):active { background: color-mix(in srgb, var(--ink) 16%, transparent); }
 .btn-quiet { background: transparent; color: var(--ink-muted); }
 .btn-small { padding: var(--space-2) var(--space-4); }
+/* Only for what can't be undone: deleting a letter */
+.btn-danger { background: var(--cranberry); color: var(--on-cranberry); }
+.btn-danger:not(:disabled):hover { background: color-mix(in srgb, var(--cranberry), white 12%); }
 .btn:disabled { opacity: var(--opacity-disabled); cursor: not-allowed; }
 /* Busy (Send while the letter saves): looks the same, but can't be pressed again */
 .btn[aria-disabled="true"] { pointer-events: none; }
@@ -522,6 +535,9 @@ body {
 .share-link .field { flex: 1 1 240px; min-width: 0; }
 .share-apps { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .write-own { align-self: center; font-weight: 700; }
+/* Delete my letter: there for the sender, but quiet, below the share section */
+.delete-letter { align-self: center; }
+.delete-letter .link { font: 600 13px/18px var(--font-sans); color: var(--ink-muted); min-height: 44px; }
 
 /* Support modal (Ko-fi): a close button over Ko-fi's form. The form is light, so it sits on its own light card. */
 .modal-support { width: min(420px, calc(100% - var(--space-8))); }

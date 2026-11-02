@@ -2,8 +2,8 @@
 @model AstroClaus.API.Features.Landing.IndexModel
 @using AstroClaus.API.Features.Letters
 @{
-    ViewData["Title"] = "Write a letter to Santa";
-    ViewData["Description"] = "Tell Santa what you wish for, and Astro the reindeer pup will carry your letter to the North Pole. Add a picture and a link for each wish, then share it with family. No account needed.";
+    ViewData["Title"] = T["Write a letter to Santa"].Value;
+    ViewData["Description"] = T["Tell Santa what you wish for, and Astro the reindeer pup will carry your letter to the North Pole. Add a picture and a link for each wish, then share it with family. No account needed."].Value;
     ViewData["Canonical"] = "/";
     // Astro greets whoever arrives; on phones he shows in a window above the panel (design/DESIGN.md §2, rules 2 and 13).
     ViewData["Diorama"] = "greet";
@@ -13,38 +13,38 @@
 @* .rise pieces appear one after another; --i is their place in that order *@
 <section class="page landing">
     <div class="landing-intro">
-        <p class="overline rise" style="--i: 0">TO: THE NORTH POLE</p>
-        <h1 class="hero-title rise" style="--i: 1">Write a letter to Santa</h1>
-        <p class="body-lg rise" style="--i: 2">Tell him what you wish for, and Astro will carry your letter north. No account needed.</p>
+        <p class="overline rise" style="--i: 0">@T["TO: THE NORTH POLE"]</p>
+        <h1 class="hero-title rise" style="--i: 1">@T["Write a letter to Santa"]</h1>
+        <p class="body-lg rise" style="--i: 2">@T["Tell him what you wish for, and Astro will carry your letter north. No account needed."]</p>
         <div class="landing-actions rise" style="--i: 3">
             @* Astro faces this button and bounces while it is hovered or focused (js/diorama) *@
-            <a class="btn btn-primary" href="/write" data-astro-reacts>
+            <a class="btn btn-primary" href="~/write" data-astro-reacts>
                 <span class="icon icon-write" aria-hidden="true"></span>
-                Write my letter
+                @T["Write my letter"]
             </a>
-            <a class="landing-example" href="/letter/example">See an example letter</a>
+            <a class="landing-example" href="~/letter/example">@T["See an example letter"]</a>
         </div>
     </div>
 
     <ol class="steps">
         <li class="step rise" style="--i: 4">
             <span class="step-icon"><span class="icon icon-write" aria-hidden="true"></span></span>
-            <p class="body-strong">1 · Write it</p>
-            <p class="caption muted">Your wishes, in your own words.</p>
+            <p class="body-strong">@T["1 · Write it"]</p>
+            <p class="caption muted">@T["Your wishes, in your own words."]</p>
         </li>
         <li class="step rise" style="--i: 5">
             <span class="step-icon"><span class="icon icon-envelope" aria-hidden="true"></span></span>
-            <p class="body-strong">2 · Send it</p>
-            <p class="caption muted">Astro carries it to the North Pole.</p>
+            <p class="body-strong">@T["2 · Send it"]</p>
+            <p class="caption muted">@T["Astro carries it to the North Pole."]</p>
         </li>
         <li class="step rise" style="--i: 6">
             <span class="step-icon"><span class="icon icon-share-link" aria-hidden="true"></span></span>
-            <p class="body-strong">3 · Share it</p>
-            <p class="caption muted">One link for family and friends.</p>
+            <p class="body-strong">@T["3 · Share it"]</p>
+            <p class="caption muted">@T["One link for family and friends."]</p>
         </li>
     </ol>
 </section>
 
 @section FooterNote {
-    <span>Letters are kept for @LetterLimits.RetentionDays days.</span>
+    <span>@T["Letters are kept for {0} days.", LetterLimits.RetentionDays]</span>
 }

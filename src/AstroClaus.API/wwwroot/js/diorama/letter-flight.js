@@ -6,6 +6,8 @@
 // the hand-over to the scene can't be seen. Built on the page, above everything, and gone once he
 // has caught it.
 
+import { say } from "../words.js";
+
 const SETTLE_MS = 300;
 const FOLD_MS = 300;   // each of the two folds
 const SEAL_MS = 250;
@@ -102,11 +104,11 @@ function flap(name, third, letter) {
 function sheetContent({ from, message }) {
   const content = el("div", "flight-content");
   const dear = el("p", "flight-dear");
-  dear.textContent = "Dear Santa,";
+  dear.textContent = say("Dear Santa,");
   const words = el("p", "flight-words");
   words.textContent = message;
   const love = el("p", "flight-love");
-  love.textContent = from ? `With love, ${from}` : "With love";
+  love.textContent = from ? say("With love, {0}", from) : say("With love");
   content.append(dear, words, love);
   return content;
 }

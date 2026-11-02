@@ -1,0 +1,409 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The site's words in Spanish (Latin America). Each name is the English the code writes (SiteText.cs). -->
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Write a letter to Santa, and Astro the reindeer pup carries it to the North Pole. No account needed." xml:space="preserve">
+    <value>Escribe una carta a Santa y Astro, el pequeño reno, la lleva al Polo Norte. No necesitas crear una cuenta.</value>
+  </data>
+  <data name="Astro, a pixel-art reindeer pup, standing in the snow under the night sky" xml:space="preserve">
+    <value>Astro, un pequeño reno en pixel art, parado en la nieve bajo el cielo de noche</value>
+  </data>
+  <data name="Terms" xml:space="preserve">
+    <value>Términos</value>
+  </data>
+  <data name="Help keep Astro online" xml:space="preserve">
+    <value>Ayuda a que Astro siga en línea</value>
+  </data>
+  <data name="Astro is taking your letter to the North Pole" xml:space="preserve">
+    <value>Astro está llevando tu carta al Polo Norte</value>
+  </data>
+  <data name="Write a letter to Santa" xml:space="preserve">
+    <value>Escribe una carta a Santa</value>
+  </data>
+  <data name="Tell Santa what you wish for, and Astro the reindeer pup will carry your letter to the North Pole. Add a picture and a link for each wish, then share it with family. No account needed." xml:space="preserve">
+    <value>Cuéntale a Santa lo que deseas y Astro, el pequeño reno, llevará tu carta al Polo Norte. Agrega una foto y un enlace para cada deseo, y compártela con tu familia. No necesitas crear una cuenta.</value>
+  </data>
+  <data name="TO: THE NORTH POLE" xml:space="preserve">
+    <value>PARA: EL POLO NORTE</value>
+  </data>
+  <data name="Tell him what you wish for, and Astro will carry your letter north. No account needed." xml:space="preserve">
+    <value>Cuéntale lo que deseas y Astro llevará tu carta hasta el norte. No necesitas crear una cuenta.</value>
+  </data>
+  <data name="Write my letter" xml:space="preserve">
+    <value>Escribir mi carta</value>
+  </data>
+  <data name="See an example letter" xml:space="preserve">
+    <value>Ver una carta de ejemplo</value>
+  </data>
+  <data name="1 · Write it" xml:space="preserve">
+    <value>1 · Escríbela</value>
+  </data>
+  <data name="Your wishes, in your own words." xml:space="preserve">
+    <value>Tus deseos, con tus propias palabras.</value>
+  </data>
+  <data name="2 · Send it" xml:space="preserve">
+    <value>2 · Envíala</value>
+  </data>
+  <data name="Astro carries it to the North Pole." xml:space="preserve">
+    <value>Astro la lleva al Polo Norte.</value>
+  </data>
+  <data name="3 · Share it" xml:space="preserve">
+    <value>3 · Compártela</value>
+  </data>
+  <data name="One link for family and friends." xml:space="preserve">
+    <value>Un solo enlace para tu familia y amigos.</value>
+  </data>
+  <data name="Letters are kept for {0} days." xml:space="preserve">
+    <value>Las cartas se guardan por {0} días.</value>
+  </data>
+  <data name="Write your letter" xml:space="preserve">
+    <value>Escribe tu carta</value>
+  </data>
+  <data name="Write your letter to Santa: your message, your wishes, a picture and a shop link for each. Astro carries it to the North Pole and you get one link to share." xml:space="preserve">
+    <value>Escribe tu carta a Santa: tu mensaje, tus deseos, y una foto y un enlace de tienda para cada uno. Astro la lleva al Polo Norte y tú recibes un enlace para compartirla.</value>
+  </data>
+  <data name="Back" xml:space="preserve">
+    <value>Atrás</value>
+  </data>
+  <data name="Take your time. Astro will wait right here." xml:space="preserve">
+    <value>Tómate tu tiempo. Astro te espera aquí mismo.</value>
+  </data>
+  <data name="Your nickname" xml:space="preserve">
+    <value>Tu apodo</value>
+  </data>
+  <data name="Who is this from?" xml:space="preserve">
+    <value>¿De parte de quién es?</value>
+  </data>
+  <data name="Your letter" xml:space="preserve">
+    <value>Tu carta</value>
+  </data>
+  <data name="Dear Santa," xml:space="preserve">
+    <value>Querido Santa:</value>
+  </data>
+  <data name="This year I have been very good..." xml:space="preserve">
+    <value>Este año me porté muy bien...</value>
+  </data>
+  <data name="Add a wish" xml:space="preserve">
+    <value>Agregar un deseo</value>
+  </data>
+  <data name="of" xml:space="preserve">
+    <value>de</value>
+  </data>
+  <data name="With love," xml:space="preserve">
+    <value>Con cariño,</value>
+  </data>
+  <data name="NP" xml:space="preserve">
+    <value>PN</value>
+  </data>
+  <data name="{0} wish" xml:space="preserve">
+    <value>{0} deseo</value>
+  </data>
+  <data name="{0} wishes" xml:space="preserve">
+    <value>{0} deseos</value>
+  </data>
+  <data name="{0} picture" xml:space="preserve">
+    <value>{0} foto</value>
+  </data>
+  <data name="{0} pictures" xml:space="preserve">
+    <value>{0} fotos</value>
+  </data>
+  <data name="Once it's sent, it can't be changed." xml:space="preserve">
+    <value>Una vez enviada, ya no se puede cambiar.</value>
+  </data>
+  <data name="Send to Santa" xml:space="preserve">
+    <value>Enviar a Santa</value>
+  </data>
+  <data name="By sending, you agree to" xml:space="preserve">
+    <value>Al enviarla, aceptas</value>
+  </data>
+  <data name="the terms" xml:space="preserve">
+    <value>los términos</value>
+  </data>
+  <data name="Astro couldn't get through" xml:space="preserve">
+    <value>Astro no pudo llegar</value>
+  </data>
+  <data name="We're having trouble delivering your letter. It's safe here, so please try again later." xml:space="preserve">
+    <value>Estamos teniendo problemas para entregar tu carta. Aquí está a salvo, así que por favor inténtalo de nuevo más tarde.</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Cerrar</value>
+  </data>
+  <data name="Show this picture first" xml:space="preserve">
+    <value>Mostrar esta foto primero</value>
+  </data>
+  <data name="Remove picture" xml:space="preserve">
+    <value>Quitar foto</value>
+  </data>
+  <data name="Remove picture {0}" xml:space="preserve">
+    <value>Quitar foto {0}</value>
+  </data>
+  <data name="Add a picture" xml:space="preserve">
+    <value>Agrega una foto</value>
+  </data>
+  <data name="of what you wish for" xml:space="preserve">
+    <value>de lo que deseas</value>
+  </data>
+  <data name="Another" xml:space="preserve">
+    <value>Otra</value>
+  </data>
+  <data name="What are you wishing for?" xml:space="preserve">
+    <value>¿Qué deseas?</value>
+  </data>
+  <data name="Wish {0}" xml:space="preserve">
+    <value>Deseo {0}</value>
+  </data>
+  <data name="Shop link" xml:space="preserve">
+    <value>Enlace de tienda</value>
+  </data>
+  <data name="Shop link (optional): https://…" xml:space="preserve">
+    <value>Enlace de tienda (opcional): https://…</value>
+  </data>
+  <data name="Where to find it (optional link)" xml:space="preserve">
+    <value>Dónde encontrarlo (enlace opcional)</value>
+  </data>
+  <data name="Remove wish {0}" xml:space="preserve">
+    <value>Quitar deseo {0}</value>
+  </data>
+  <data name="Letter delivered" xml:space="preserve">
+    <value>Carta entregada</value>
+  </data>
+  <data name="A letter from {0}" xml:space="preserve">
+    <value>Una carta de {0}</value>
+  </data>
+  <data name="A letter to Santa" xml:space="preserve">
+    <value>Una carta a Santa</value>
+  </data>
+  <data name="Someone wrote a letter to Santa, and Astro delivered it to the North Pole. Open it to read their wishes." xml:space="preserve">
+    <value>Alguien escribió una carta a Santa y Astro la entregó en el Polo Norte. Ábrela para leer sus deseos.</value>
+  </data>
+  <data name="I wrote a letter to Santa. Read it here: {0}" xml:space="preserve">
+    <value>Escribí una carta a Santa. Léela aquí: {0}</value>
+  </data>
+  <data name="DELIVERED" xml:space="preserve">
+    <value>ENTREGADA</value>
+  </data>
+  <data name="Sent {0}" xml:space="preserve">
+    <value>Enviada el {0}</value>
+  </data>
+  <data name="Kept until {0}" xml:space="preserve">
+    <value>Se guarda hasta el {0}</value>
+  </data>
+  <data name="The letter" xml:space="preserve">
+    <value>La carta</value>
+  </data>
+  <data name="FROM: {0}" xml:space="preserve">
+    <value>DE: {0}</value>
+  </data>
+  <data name="NORTH POLE" xml:space="preserve">
+    <value>POLO NORTE</value>
+  </data>
+  <data name="My wishes" xml:space="preserve">
+    <value>Mis deseos</value>
+  </data>
+  <data name="Picture for {0}" xml:space="preserve">
+    <value>Foto de {0}</value>
+  </data>
+  <data name="Picture {0} for {1}" xml:space="preserve">
+    <value>Foto {0} de {1}</value>
+  </data>
+  <data name="Find it here" xml:space="preserve">
+    <value>Encuéntralo aquí</value>
+  </data>
+  <data name="With love, {0}" xml:space="preserve">
+    <value>Con cariño, {0}</value>
+  </data>
+  <data name="With love" xml:space="preserve">
+    <value>Con cariño</value>
+  </data>
+  <data name="Share your letter" xml:space="preserve">
+    <value>Comparte tu carta</value>
+  </data>
+  <data name="Anyone with this link can read it. It always shows the same letter." xml:space="preserve">
+    <value>Cualquier persona con este enlace puede leerla. Siempre muestra la misma carta.</value>
+  </data>
+  <data name="Letter link" xml:space="preserve">
+    <value>Enlace de la carta</value>
+  </data>
+  <data name="Copy link" xml:space="preserve">
+    <value>Copiar enlace</value>
+  </data>
+  <data name="Link copied" xml:space="preserve">
+    <value>Enlace copiado</value>
+  </data>
+  <data name="Share on WhatsApp" xml:space="preserve">
+    <value>Compartir por WhatsApp</value>
+  </data>
+  <data name="More ways to share" xml:space="preserve">
+    <value>Más formas de compartir</value>
+  </data>
+  <data name="Write your own letter" xml:space="preserve">
+    <value>Escribe tu propia carta</value>
+  </data>
+  <data name="This letter has been delivered" xml:space="preserve">
+    <value>Esta carta ya fue entregada</value>
+  </data>
+  <data name="Letters stay for {0} days, then Astro carries them to the North Pole for good. This one is already with Santa." xml:space="preserve">
+    <value>Las cartas se quedan aquí {0} días y luego Astro las lleva al Polo Norte para siempre. Esta ya está con Santa.</value>
+  </data>
+  <data name="Write a letter" xml:space="preserve">
+    <value>Escribir una carta</value>
+  </data>
+  <data name="{0} of {1}" xml:space="preserve">
+    <value>{0} de {1}</value>
+  </data>
+  <data name="Lost in the snow" xml:space="preserve">
+    <value>Perdido en la nieve</value>
+  </data>
+  <data name="Snowed in!" xml:space="preserve">
+    <value>¡Atrapados en la nieve!</value>
+  </data>
+  <data name="Too many snowballs!" xml:space="preserve">
+    <value>¡Demasiadas bolas de nieve!</value>
+  </data>
+  <data name="Astro can't keep up with so many at once." xml:space="preserve">
+    <value>Astro no puede con tantas a la vez.</value>
+  </data>
+  <data name="Please wait a few minutes and try again." xml:space="preserve">
+    <value>Por favor, espera unos minutos e inténtalo de nuevo.</value>
+  </data>
+  <data name="Astro looking sad, with snow piled on his head" xml:space="preserve">
+    <value>Astro triste, con nieve amontonada en la cabeza</value>
+  </data>
+  <data name="Oops, we couldn't find anything here." xml:space="preserve">
+    <value>Ups, no encontramos nada aquí.</value>
+  </data>
+  <data name="The snow may have covered it up." xml:space="preserve">
+    <value>Tal vez la nieve lo cubrió.</value>
+  </data>
+  <data name="We're sorry, heavy snow is causing issues in our system. Astro is already digging us out." xml:space="preserve">
+    <value>Lo sentimos, una fuerte nevada está causando problemas en nuestro sistema. Astro ya nos está sacando de la nieve.</value>
+  </data>
+  <data name="Please try again in a little while." xml:space="preserve">
+    <value>Por favor, inténtalo de nuevo en un rato.</value>
+  </data>
+  <data name="Back home" xml:space="preserve">
+    <value>Volver al inicio</value>
+  </data>
+  <data name="Before you write" xml:space="preserve">
+    <value>Antes de escribir</value>
+  </data>
+  <data name="Keep it to wishes" xml:space="preserve">
+    <value>Solo deseos, por favor</value>
+  </data>
+  <data name="Please don't put personal information in a letter: no full names, addresses, phone numbers, school names or photos of people. A nickname and a wish list are all Santa needs." xml:space="preserve">
+    <value>Por favor, no pongas información personal en una carta: nada de nombres completos, direcciones, números de teléfono, nombres de escuelas ni fotos de personas. Un apodo y una lista de deseos es todo lo que Santa necesita.</value>
+  </data>
+  <data name="Anyone with the link can read it" xml:space="preserve">
+    <value>Cualquiera con el enlace puede leerla</value>
+  </data>
+  <data name="There are no accounts. A letter is private only as long as its link is. Share it with people you trust." xml:space="preserve">
+    <value>No hay cuentas. Una carta es privada solo mientras su enlace también lo sea. Compártela con personas de confianza.</value>
+  </data>
+  <data name="Letters can't be edited" xml:space="preserve">
+    <value>Las cartas no se pueden editar</value>
+  </data>
+  <data name="Once a letter is sent, it can't be changed. It can be deleted, but only from the browser it was sent from: open the letter there and choose Delete my letter." xml:space="preserve">
+    <value>Una vez enviada, una carta no se puede cambiar. Sí se puede borrar, pero solo desde el navegador donde se envió: abre la carta ahí y elige Borrar mi carta.</value>
+  </data>
+  <data name="What we keep in your browser" xml:space="preserve">
+    <value>Lo que guardamos en tu navegador</value>
+  </data>
+  <data name="Two small things: your language, if you pick one, and a key for each letter you send, so you can delete it later. Nothing is used to track you." xml:space="preserve">
+    <value>Solo dos cositas: tu idioma, si eliges uno, y una clave por cada carta que envías, para que puedas borrarla después. Nada se usa para rastrearte.</value>
+  </data>
+  <data name="Letters stay for {0} days" xml:space="preserve">
+    <value>Las cartas se quedan {0} días</value>
+  </data>
+  <data name="After {0} days, Astro carries the letter to the North Pole for good, and its link stops working." xml:space="preserve">
+    <value>Después de {0} días, Astro lleva la carta al Polo Norte para siempre y su enlace deja de funcionar.</value>
+  </data>
+  <data name="Support Astro Claus" xml:space="preserve">
+    <value>Apoya a Astro Claus</value>
+  </data>
+  <data name="Every donation goes to keeping this site online: its hosting and the storage for your letters. That's how writing to Santa stays free." xml:space="preserve">
+    <value>Cada donación sirve para mantener este sitio en línea: el hospedaje y el almacenamiento de tus cartas. Así, escribirle a Santa sigue siendo gratis.</value>
+  </data>
+  <data name="Support Astro Claus on Ko-fi" xml:space="preserve">
+    <value>Apoya a Astro Claus en Ko-fi</value>
+  </data>
+  <data name="Add a nickname so Santa knows who it's from." xml:space="preserve">
+    <value>Agrega un apodo para que Santa sepa de quién es.</value>
+  </data>
+  <data name="Nicknames can be up to {1} characters." xml:space="preserve">
+    <value>El apodo puede tener hasta {1} caracteres.</value>
+  </data>
+  <data name="Write a little message for Santa." xml:space="preserve">
+    <value>Escríbele un mensajito a Santa.</value>
+  </data>
+  <data name="Messages can be up to {1} characters." xml:space="preserve">
+    <value>El mensaje puede tener hasta {1} caracteres.</value>
+  </data>
+  <data name="Add at least one wish." xml:space="preserve">
+    <value>Agrega al menos un deseo.</value>
+  </data>
+  <data name="A letter can hold up to {1} wishes." xml:space="preserve">
+    <value>Una carta puede tener hasta {1} deseos.</value>
+  </data>
+  <data name="Every wish needs a name." xml:space="preserve">
+    <value>Cada deseo necesita un nombre.</value>
+  </data>
+  <data name="Wish names can be up to {1} characters." xml:space="preserve">
+    <value>El nombre de un deseo puede tener hasta {1} caracteres.</value>
+  </data>
+  <data name="Links can be up to {1} characters." xml:space="preserve">
+    <value>Los enlaces pueden tener hasta {1} caracteres.</value>
+  </data>
+  <data name="Some letters here have too many marks stacked on them. Please use regular letters." xml:space="preserve">
+    <value>Algunas letras tienen demasiadas marcas encimadas. Por favor, usa letras normales.</value>
+  </data>
+  <data name="Anyone with the link can read your letter, so please leave out email addresses and phone numbers." xml:space="preserve">
+    <value>Cualquiera con el enlace puede leer tu carta, así que por favor no pongas correos electrónicos ni números de teléfono.</value>
+  </data>
+  <data name="That isn't a web link. Copy it from your browser's address bar." xml:space="preserve">
+    <value>Eso no es un enlace web. Cópialo de la barra de direcciones de tu navegador.</value>
+  </data>
+  <data name="This picture is over {0} MB. Try a different picture." xml:space="preserve">
+    <value>Esta foto pesa más de {0} MB. Prueba con otra foto.</value>
+  </data>
+  <data name="This picture isn't a JPG, PNG or WebP." xml:space="preserve">
+    <value>Esta foto no es JPG, PNG ni WebP.</value>
+  </data>
+  <data name="{0} is too big. Try a different picture." xml:space="preserve">
+    <value>{0} es demasiado grande. Prueba con otra foto.</value>
+  </data>
+  <data name="Sending…" xml:space="preserve">
+    <value>Enviando…</value>
+  </data>
+  <data name="Deleting…" xml:space="preserve">
+    <value>Borrando…</value>
+  </data>
+  <data name="Delete my letter" xml:space="preserve">
+    <value>Borrar mi carta</value>
+  </data>
+  <data name="Delete this letter?" xml:space="preserve">
+    <value>¿Borrar esta carta?</value>
+  </data>
+  <data name="It will be gone for everyone who has the link, pictures and all. It can't be brought back." xml:space="preserve">
+    <value>Desaparecerá para todos los que tengan el enlace, con todo y fotos. No se podrá recuperar.</value>
+  </data>
+  <data name="Astro couldn't delete it right now. Please try again later." xml:space="preserve">
+    <value>Astro no pudo borrarla en este momento. Por favor, inténtalo de nuevo más tarde.</value>
+  </data>
+  <data name="Delete it" xml:space="preserve">
+    <value>Borrarla</value>
+  </data>
+  <data name="Keep it" xml:space="preserve">
+    <value>Conservarla</value>
+  </data>
+</root>

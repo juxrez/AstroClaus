@@ -18,4 +18,7 @@ public class ErrorModel : PageModel
     public int? Code { get; set; }
 
     public bool IsNotFound => Code == StatusCodes.Status404NotFound;
+
+    /// <summary>A visitor over a rate limit (Features/Protection/RateLimits.cs).</summary>
+    public bool IsTooManyRequests => Code == StatusCodes.Status429TooManyRequests;
 }

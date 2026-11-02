@@ -30,4 +30,10 @@ public sealed class FakeLetterStore : ILetterStore
 
     public Task<(Stream Content, string ContentType)?> OpenImageAsync(string id, string fileName, CancellationToken ct) =>
         throw new NotSupportedException("No test reads images back.");
+
+    public Task DeleteAsync(Letter letter, CancellationToken ct)
+    {
+        _letters.Remove(letter.Id);
+        return Task.CompletedTask;
+    }
 }

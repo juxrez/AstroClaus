@@ -2,16 +2,18 @@
 @model AstroClaus.API.Features.Letters.Create.CreateModel
 @using AstroClaus.API.Features.Letters
 @{
-    ViewData["Title"] = "Write your letter";
-    ViewData["Description"] = "Write your letter to Santa: your message, your wishes, a picture and a shop link for each. Astro carries it to the North Pole and you get one link to share.";
+    ViewData["Title"] = T["Write your letter"].Value;
+    ViewData["Description"] = T["Write your letter to Santa: your message, your wishes, a picture and a shop link for each. Astro carries it to the North Pole and you get one link to share."].Value;
     // Astro sits and waits while the letter is written (design/DESIGN.md §2, rule 2).
     ViewData["Diorama"] = "wait";
+    // Switching language here would lose the letter being written, and the header has no room beside Back
+    ViewData["NoLanguageToggle"] = true;
 }
 
 @section HeaderStart {
-    <a class="back-link" href="/">
+    <a class="back-link" href="~/">
         <span class="icon icon-arrow-left" aria-hidden="true"></span>
-        Back
+        @T["Back"]
     </a>
 }
 
@@ -22,34 +24,34 @@
           data-max-wishes="@LetterLimits.MaxWishes" data-max-images="@LetterLimits.MaxImagesPerWish" data-max-image-bytes="@LetterLimits.MaxImageBytes">
         <div class="create-middle">
             <div class="create-intro">
-                <h1 class="title">Write your letter</h1>
-                <p class="body muted">Take your time. Astro will wait right here.</p>
+                <h1 class="title">@T["Write your letter"]</h1>
+                <p class="body muted">@T["Take your time. Astro will wait right here."]</p>
             </div>
 
             @* Each field shows its own error under it; this lists only errors that belong to no field *@
             <div asp-validation-summary="ModelOnly" class="banner banner-error body" data-form-errors></div>
 
             <div class="group nickname">
-                <label class="heading" for="from">Your nickname</label>
-                <input class="field" id="from" asp-for="Form.From" maxlength="@LetterLimits.FromMax" placeholder="Who is this from?" autocomplete="off" />
+                <label class="heading" for="from">@T["Your nickname"]</label>
+                <input class="field" id="from" asp-for="Form.From" maxlength="@LetterLimits.FromMax" placeholder="@T["Who is this from?"]" autocomplete="off" />
                 <span class="field-error" asp-validation-for="Form.From"></span>
             </div>
 
             @* The whole letter on one sheet of paper, as it will look once sent: the message, the wishes
                taped on as polaroids, then the sign-off, filled in with the nickname (design/DESIGN.md §4) *@
             <div class="group">
-                <label class="heading" for="message">Your letter</label>
+                <label class="heading" for="message">@T["Your letter"]</label>
                 <div class="paper letter-draft">
                     <div class="letter-message" data-error-target>
-                        <p class="subtitle">Dear Santa,</p>
+                        <p class="subtitle">@T["Dear Santa,"]</p>
                         <textarea class="hand draft-message" id="message" asp-for="Form.Message" rows="4"
-                                  maxlength="@LetterLimits.MessageMax" placeholder="This year I have been very good..."></textarea>
+                                  maxlength="@LetterLimits.MessageMax" placeholder="@T["This year I have been very good..."]"></textarea>
                         <p class="caption draft-count" aria-live="polite"><span id="message-count">0</span> / @LetterLimits.MessageMax</p>
                     </div>
                     <span class="field-error" asp-validation-for="Form.Message"></span>
 
                     <section class="letter-wishes" aria-labelledby="wishes-title">
-                        <h2 class="overline" id="wishes-title">MY WISHES</h2>
+                        <h2 class="overline" id="wishes-title">@T["My wishes"].Value.ToUpper()</h2>
                         <ol class="polaroids wishes" id="wishes">
                             @for (var i = 0; i < Model.Form.Wishes.Count; i++)
                             {
@@ -59,15 +61,15 @@
                             <li class="add-wish" id="add-wish-slot">
                                 <button type="button" class="add-wish-tile" id="add-wish">
                                     <span class="icon icon-plus" aria-hidden="true"></span>
-                                    <span class="body-strong">Add a wish</span>
-                                    <span class="caption" aria-live="polite"><span id="wish-count">@Model.Form.Wishes.Count</span> of @LetterLimits.MaxWishes</span>
+                                    <span class="body-strong">@T["Add a wish"]</span>
+                                    <span class="caption" aria-live="polite"><span id="wish-count">@Model.Form.Wishes.Count</span> @T["of"] @LetterLimits.MaxWishes</span>
                                 </button>
                             </li>
                         </ol>
                         <p class="caption error-text" id="image-error" role="alert" hidden></p>
                     </section>
 
-                    <p class="hand sign-off" aria-hidden="true">With love, <span id="sign-name">@Model.Form.From</span></p>
+                    <p class="hand sign-off" aria-hidden="true">@T["With love,"] <span id="sign-name">@Model.Form.From</span></p>
                 </div>
             </div>
         </div>
@@ -81,19 +83,19 @@
             <div class="stamp" aria-hidden="true">
                 <span class="stamp-face">
                     <span class="icon icon-snowflake"></span>
-                    <span class="pixel-tag">NP</span>
+                    <span class="pixel-tag">@T["NP"]</span>
                 </span>
             </div>
             <div class="postage">
-                <p class="overline">TO: THE NORTH POLE</p>
-                <p class="body-strong" id="postage-count" aria-live="polite">@Model.Form.Wishes.Count @(Model.Form.Wishes.Count == 1 ? "wish" : "wishes")</p>
-                <p class="caption muted">Once it's sent, it can't be changed.</p>
+                <p class="overline">@T["TO: THE NORTH POLE"]</p>
+                <p class="body-strong" id="postage-count" aria-live="polite">@T[Model.Form.Wishes.Count == 1 ? "{0} wish" : "{0} wishes", Model.Form.Wishes.Count]</p>
+                <p class="caption muted">@T["Once it's sent, it can't be changed."]</p>
             </div>
             <button type="submit" class="btn btn-primary" id="send">
                 <span class="icon icon-send" aria-hidden="true"></span>
-                <span data-label>Send to Santa</span>
+                <span data-label>@T["Send to Santa"]</span>
             </button>
-            <p class="caption muted action-terms">By sending, you agree to the <button type="button" class="link" data-open-modal="terms-modal">terms</button>.</p>
+            <p class="caption muted action-terms">@T["By sending, you agree to"] <button type="button" class="link" data-open-modal="terms-modal">@T["the terms"]</button>.</p>
         </div>
     </form>
 </section>
@@ -102,8 +104,8 @@
    details (design/DESIGN.md §2, rule 6). To try again, Send to Santa is right there. *@
 <dialog class="modal" id="send-failed" aria-labelledby="send-failed-title">
     <div class="modal-body">
-        <h2 class="title" id="send-failed-title">Astro couldn't get through</h2>
-        <p class="body">We're having trouble delivering your letter. It's safe here, so please try again later.</p>
-        <button type="button" class="btn btn-secondary" data-close-modal>Close</button>
+        <h2 class="title" id="send-failed-title">@T["Astro couldn't get through"]</h2>
+        <p class="body">@T["We're having trouble delivering your letter. It's safe here, so please try again later."]</p>
+        <button type="button" class="btn btn-secondary" data-close-modal>@T["Close"]</button>
     </div>
 </dialog>

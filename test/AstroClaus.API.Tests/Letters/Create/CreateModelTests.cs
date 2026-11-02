@@ -1,9 +1,13 @@
 using System.Text;
 using AstroClaus.API.Features.Letters;
 using AstroClaus.API.Features.Letters.Create;
+using AstroClaus.API.Features.Shared;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 
 namespace AstroClaus.API.Tests.Letters.Create;
 
@@ -124,7 +128,10 @@ public class CreateModelTests
     }
 
     private static CreateModel NewModel(FakeLetterStore store, LetterForm form) =>
-        new(store) { Form = form, PageContext = new PageContext() };
+        new(store, Text) { Form = form, PageContext = new PageContext() };
+
+    private static readonly IStringLocalizer<SiteText> Text =
+        new StringLocalizer<SiteText>(new ResourceManagerStringLocalizerFactory(Options.Create(new LocalizationOptions()), NullLoggerFactory.Instance));
 
     private static LetterForm FormWithOnePicture(IFormFile picture) => new()
     {

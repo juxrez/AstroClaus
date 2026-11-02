@@ -8,7 +8,7 @@ namespace AstroClaus.API.Features.Letters;
 
 /// <summary>
 /// One container, one folder per letter: "{id}/letter.json" plus "{id}/{image}".
-/// Letters are written once and never overwritten. The 90-day retention is an
+/// Letters are written once and never overwritten; the browser that sent one can delete it. The 90-day retention is an
 /// Azure lifecycle rule (see /infra), not app code.
 /// </summary>
 public sealed class BlobLetterStore(BlobServiceClient service, ILogger<BlobLetterStore> logger) : ILetterStore
@@ -76,6 +76,20 @@ public sealed class BlobLetterStore(BlobServiceClient service, ILogger<BlobLette
             _logger.LogWarning("Image: {FileName}. With id: {Id} not found.", id, fileName);
             return null;
         }
+    }
+
+    /// <summary>
+    /// Deletes the pictures first and the letter last, the reverse of saving: if it stops halfway, the
+    /// letter is still there, so deleting it again finishes the job.
+    /// </summary>
+    public async Task DeleteAsync(Letter letter, CancellationToken ct)
+    {
+        var container = service.GetBlobContainerClient(ContainerName);
+        foreach (var image in letter.Wishes.SelectMany(wish => wish.Images))
+        {
+            await GetBlobPath(container, letter.Id, image).DeleteIfExistsAsync(cancellationToken: ct);
+        }
+        await GetBlobPath(container, letter.Id, LetterFileName).DeleteIfExistsAsync(cancellationToken: ct);
     }
 
     /// <summary>

@@ -31,9 +31,9 @@
                         }
                         else
                         {
-                            <button type="button" class="thumb-swap" data-swap-picture aria-label="Show this picture first"><img alt="" /></button>
+                            <button type="button" class="thumb-swap" data-swap-picture aria-label="@T["Show this picture first"]"><img alt="" /></button>
                         }
-                        <button type="button" class="thumb-remove" data-remove-picture aria-label="Remove picture">
+                        <button type="button" class="thumb-remove" data-remove-picture aria-label="@T["Remove picture"]">
                             <span class="icon icon-x" aria-hidden="true"></span>
                         </button>
                     </figure>
@@ -41,13 +41,13 @@
                         @if (first)
                         {
                             <span class="icon icon-image" aria-hidden="true"></span>
-                            <span>Add a picture</span>
-                            <span class="add-image-hint">of what you wish for</span>
+                            <span>@T["Add a picture"]</span>
+                            <span class="add-image-hint">@T["of what you wish for"]</span>
                         }
                         else
                         {
                             <span class="icon icon-plus" aria-hidden="true"></span>
-                            <span>Another</span>
+                            <span>@T["Another"]</span>
                         }
                         <input class="visually-hidden @Invalid(field)" type="file" name="@FieldName(field)" accept="image/jpeg,image/png,image/webp" data-image />
                     </label>
@@ -64,7 +64,7 @@
         <div class="polaroid-caption" data-error-target>
             <span class="wish-number" data-wish-number aria-hidden="true">@number</span>
             <textarea class="wish-name @Invalid("Name")" name="@FieldName("Name")" rows="1" maxlength="@LetterLimits.WishNameMax"
-                      placeholder="What are you wishing for?" aria-label="Wish @number" data-wish-name>@Model.Wish.Name</textarea>
+                      placeholder="@T["What are you wishing for?"]" aria-label="@T["Wish {0}", number]" data-wish-name>@Model.Wish.Name</textarea>
         </div>
         @if (ErrorFor("Name") is { } nameError)
         {
@@ -75,18 +75,18 @@
         <div class="wish-link">
             <button type="button" class="add-link" data-open-link hidden>
                 <span class="icon icon-plus" aria-hidden="true"></span>
-                Shop link
+                @T["Shop link"]
             </button>
             <input class="wish-link-field @Invalid("Link")" type="url" name="@FieldName("Link")" value="@Model.Wish.Link"
-                   maxlength="@LetterLimits.WishLinkMax" placeholder="Shop link (optional): https://…"
-                   aria-label="Where to find it (optional link)" autocomplete="off" data-link />
+                   maxlength="@LetterLimits.WishLinkMax" placeholder="@T["Shop link (optional): https://…"]"
+                   aria-label="@T["Where to find it (optional link)"]" autocomplete="off" data-link />
         </div>
         @if (ErrorFor("Link") is { } linkError)
         {
             <span class="field-error field-validation-error" data-valmsg-for="@FieldName("Link")">@linkError</span>
         }
     </div>
-    <button type="button" class="wish-remove" data-remove-wish aria-label="Remove wish @number">
+    <button type="button" class="wish-remove" data-remove-wish aria-label="@T["Remove wish {0}", number]">
         <span class="icon icon-x" aria-hidden="true"></span>
     </button>
 </li>

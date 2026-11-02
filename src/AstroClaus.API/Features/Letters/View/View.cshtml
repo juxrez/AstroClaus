@@ -2,12 +2,12 @@
 @model AstroClaus.API.Features.Letters.View.ViewModel
 @using System.Globalization
 @{
-    ViewData["Title"] = Model.Letter is null ? "Letter delivered" : $"A letter from {Model.Letter.From}";
+    ViewData["Title"] = (Model.Letter is null ? T["Letter delivered"] : T["A letter from {0}", Model.Letter.From]).Value;
     // Letters stay out of search results, and a shared link's preview never shows the child's
     // nickname, message or pictures: only the page itself does (constitution rule 8).
     ViewData["NoIndex"] = true;
-    ViewData["ShareTitle"] = "A letter to Santa";
-    ViewData["Description"] = "Someone wrote a letter to Santa, and Astro delivered it to the North Pole. Open it to read their wishes.";
+    ViewData["ShareTitle"] = T["A letter to Santa"].Value;
+    ViewData["Description"] = T["Someone wrote a letter to Santa, and Astro delivered it to the North Pole. Open it to read their wishes."].Value;
     // Just sent: Astro runs off with the letter. Opened by a reader: Astro plays in the snow.
     // On phones he shows in a window above the letter (design/DESIGN.md §2, rule 13).
     if (Model.Letter is not null)
@@ -15,46 +15,49 @@
         ViewData["Diorama"] = Model.JustSent ? "delivery" : "play";
         ViewData["SceneWindow"] = true;
     }
+
+    // Dates in the page's language, without the dot some languages put after a short month ("nov.")
+    string Day(DateTimeOffset date, string format) => date.ToString(format, CultureInfo.CurrentCulture).Replace(".", "");
 }
 
 @if (Model.Letter is { } letter)
 {
     var sent = letter.CreatedAt;
-    var whatsApp = "https://wa.me/?text=" + Uri.EscapeDataString("I wrote a letter to Santa. Read it here: " + Model.ShareUrl);
+    var whatsApp = "https://wa.me/?text=" + Uri.EscapeDataString(T["I wrote a letter to Santa. Read it here: {0}", Model.ShareUrl]);
 
     @* data-just-sent: on narrow screens the share section moves above the letter (DESIGN.md §4) *@
     <section class="page letter-page" data-just-sent="@(Model.JustSent ? "true" : "false")">
         <div class="letter-status">
             <span class="badge badge-aurora pixel-tag">
                 <span class="icon icon-check" aria-hidden="true"></span>
-                DELIVERED
+                @T["DELIVERED"]
             </span>
             <span class="caption muted">
-                Sent @sent.ToString("d MMM yyyy", CultureInfo.InvariantCulture)
+                @T["Sent {0}", Day(sent, "d MMM yyyy")]
                 @if (!Model.IsExample)
                 {
-                    @:· Kept until @sent.AddDays(LetterLimits.RetentionDays).ToString("d MMM yyyy", CultureInfo.InvariantCulture)
+                    @:· @T["Kept until {0}", Day(sent.AddDays(LetterLimits.RetentionDays), "d MMM yyyy")]
                 }
             </span>
         </div>
 
-        <article class="paper" aria-label="The letter">
+        <article class="paper" aria-label="@T["The letter"]">
             <div class="letter-address">
-                <p class="overline">TO: THE NORTH POLE<br />FROM: @letter.From.ToUpperInvariant()</p>
+                <p class="overline">@T["TO: THE NORTH POLE"]<br />@T["FROM: {0}", letter.From.ToUpperInvariant()]</p>
                 @* Decoration only: the status row above says the same in words *@
                 <div class="postmark" aria-hidden="true">
-                    <span>NORTH POLE</span>
-                    <span class="postmark-day">@sent.ToString("d MMM", CultureInfo.InvariantCulture).ToUpperInvariant()</span>
+                    <span>@T["NORTH POLE"]</span>
+                    <span class="postmark-day">@Day(sent, "d MMM").ToUpperInvariant()</span>
                     <span>@sent.Year</span>
                 </div>
             </div>
 
-            <p class="subtitle">Dear Santa,</p>
+            <p class="subtitle">@T["Dear Santa,"]</p>
             <p class="hand">@letter.Message</p>
 
             @* Each wish is a polaroid taped to the paper, two to a row (DESIGN.md §4). A wish's second
                picture is a small polaroid on the first one's corner, as on Create; one with none is a sticky note. *@
-            <h2 class="heading">My wishes</h2>
+            <h2 class="heading">@T["My wishes"]</h2>
             <ol class="polaroids">
                 @for (var i = 0; i < letter.Wishes.Count; i++)
                 {
@@ -68,12 +71,12 @@
                                 @* Each opens in the picture modal, in this order; without the page script, in a new tab *@
                                 <div class="polaroid-photo">
                                     <a class="polaroid-picture" href="@pictures[0]" target="_blank" rel="noopener" data-picture>
-                                        <img src="@pictures[0]" alt="Picture for @wish.Name" loading="lazy" />
+                                        <img src="@pictures[0]" alt="@T["Picture for {0}", wish.Name]" loading="lazy" />
                                     </a>
                                     @for (var j = 1; j < pictures.Count; j++)
                                     {
                                         <a class="polaroid-second" href="@pictures[j]" target="_blank" rel="noopener" data-picture>
-                                            <img src="@pictures[j]" alt="Picture @(j + 1) for @wish.Name" loading="lazy" />
+                                            <img src="@pictures[j]" alt="@T["Picture {0} for {1}", j + 1, wish.Name]" loading="lazy" />
                                         </a>
                                     }
                                 </div>
@@ -85,7 +88,7 @@
                             @if (Wish.IsWebLink(wish.Link))
                             {
                                 <a class="find-it" href="@wish.Link" target="_blank" rel="noopener noreferrer nofollow ugc" data-wish-link>
-                                    Find it here<span class="visually-hidden">: @wish.Name</span>
+                                    @T["Find it here"]<span class="visually-hidden">: @wish.Name</span>
                                     <span class="icon icon-arrow-up-right" aria-hidden="true"></span>
                                 </a>
                             }
@@ -94,31 +97,54 @@
                 }
             </ol>
 
-            <p class="hand sign-off">With love, @letter.From</p>
+            <p class="hand sign-off">@T["With love, {0}", letter.From]</p>
         </article>
 
         @* The example isn't the visitor's own letter, so there is nothing of theirs to share *@
         @if (!Model.IsExample)
         {
             <section class="share" aria-labelledby="share-title">
-                <h2 class="heading" id="share-title">Share your letter</h2>
-                <p class="body muted">Anyone with this link can read it. It always shows the same letter.</p>
+                <h2 class="heading" id="share-title">@T["Share your letter"]</h2>
+                <p class="body muted">@T["Anyone with this link can read it. It always shows the same letter."]</p>
                 <div class="share-link">
-                    <label class="visually-hidden" for="share-link">Letter link</label>
+                    <label class="visually-hidden" for="share-link">@T["Letter link"]</label>
                     <input class="field" id="share-link" type="text" readonly value="@Model.ShareUrl" />
                     <button type="button" class="btn btn-secondary" id="copy-link">
                         <span class="icon icon-share-link" aria-hidden="true"></span>
-                        <span data-label>Copy link</span>
+                        <span data-label>@T["Copy link"]</span>
                     </button>
                 </div>
                 <div class="share-apps">
-                    <a class="btn btn-secondary btn-small" href="@whatsApp" target="_blank" rel="noopener">Share on WhatsApp</a>
-                    <button type="button" class="btn btn-secondary btn-small" id="native-share" hidden>More ways to share</button>
+                    <a class="btn btn-secondary btn-small" href="@whatsApp" target="_blank" rel="noopener">@T["Share on WhatsApp"]</a>
+                    <button type="button" class="btn btn-secondary btn-small" id="native-share" hidden>@T["More ways to share"]</button>
                 </div>
             </section>
+
+            @* Only the browser that sent the letter can delete it: the page script shows this once it
+               finds the delete key it kept, and puts the key in the form. Letters sent before deleting
+               existed have no key, and never show it. *@
+            @if (letter.DeleteKeyHash is not null)
+            {
+                <form method="post" asp-page-handler="Delete" class="delete-letter" data-delete-letter="@letter.Id" hidden>
+                    <input type="hidden" name="key" data-delete-key />
+                    <button type="button" class="link" data-open-modal="delete-modal">@T["Delete my letter"]</button>
+                </form>
+
+                <dialog class="modal" id="delete-modal" aria-labelledby="delete-title">
+                    <div class="modal-body">
+                        <h2 class="title" id="delete-title">@T["Delete this letter?"]</h2>
+                        <p class="body">@T["It will be gone for everyone who has the link, pictures and all. It can't be brought back."]</p>
+                        <p class="body error-text" data-delete-failed hidden>@T["Astro couldn't delete it right now. Please try again later."]</p>
+                        <div class="modal-actions">
+                            <button type="button" class="btn btn-danger" data-confirm-delete><span data-label>@T["Delete it"]</span></button>
+                            <button type="button" class="btn btn-secondary" data-close-modal>@T["Keep it"]</button>
+                        </div>
+                    </div>
+                </dialog>
+            }
         }
 
-        <a class="write-own" href="/write">Write your own letter</a>
+        <a class="write-own" href="~/write">@T["Write your own letter"]</a>
     </section>
 
     @* One modal for every picture on the letter; the page script fills it with the picture clicked.
@@ -130,7 +156,7 @@
                 <span class="body-strong" id="picture-title" data-picture-title></span>
                 <span class="picture-end">
                     <span class="caption muted" data-picture-count></span>
-                    <a class="caption" target="_blank" rel="noopener noreferrer nofollow ugc" data-picture-link hidden>Find it here</a>
+                    <a class="caption" target="_blank" rel="noopener noreferrer nofollow ugc" data-picture-link hidden>@T["Find it here"]</a>
                 </span>
             </figcaption>
         </figure>
@@ -139,8 +165,8 @@
 else
 {
     <section class="page" data-motion="view">
-        <h1 class="title">This letter has been delivered</h1>
-        <p class="body">Letters stay for @LetterLimits.RetentionDays days, then Astro carries them to the North Pole for good. This one is already with Santa.</p>
-        <a class="btn btn-primary" href="/write">Write a letter</a>
+        <h1 class="title">@T["This letter has been delivered"]</h1>
+        <p class="body">@T["Letters stay for {0} days, then Astro carries them to the North Pole for good. This one is already with Santa.", LetterLimits.RetentionDays]</p>
+        <a class="btn btn-primary" href="~/write">@T["Write a letter"]</a>
     </section>
 }

@@ -33,7 +33,24 @@ public class ViewModel(ILetterStore store) : PageModel
         }
 
         JustSent = sent;
-        ShareUrl = $"{Request.Scheme}://{Request.Host}/letter/{Letter.Id}";
+        // In the sender's language, so a link preview shows in it; a reader still gets their own (Languages)
+        ShareUrl = $"{Request.Scheme}://{Request.Host}{Request.PathBase}/letter/{Letter.Id}";
         return Page();
+    }
+
+    /// <summary>
+    /// Deletes the letter and its pictures, for the browser that sent it: the page script sends the
+    /// delete key it kept (wwwroot/js/app.js). A wrong key, or a letter without one, deletes nothing.
+    /// </summary>
+    public async Task<IActionResult> OnPostDeleteAsync(string id, string? key, CancellationToken ct)
+    {
+        var letter = LetterIdGenerator.IsValid(id) ? await store.GetAsync(id, ct) : null;
+        if (letter is null || !DeleteKey.Matches(key, letter.DeleteKeyHash))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden);
+        }
+
+        await store.DeleteAsync(letter, ct);
+        return new NoContentResult();
     }
 }

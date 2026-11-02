@@ -1,11 +1,13 @@
+using AstroClaus.API.Features.Shared;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Localization;
 
 namespace AstroClaus.API.Features.Letters.Create;
 
 [RequestSizeLimit(LetterLimits.MaxRequestBytes)]
-public class CreateModel(ILetterStore store) : PageModel
+public class CreateModel(ILetterStore store, IStringLocalizer<SiteText> words) : PageModel
 {
     private const string StackedMarksMessage = "Some letters here have too many marks stacked on them. Please use regular letters.";
     private const string ContactDetailsMessage = "Anyone with the link can read your letter, so please leave out email addresses and phone numbers.";
@@ -45,10 +47,16 @@ public class CreateModel(ILetterStore store) : PageModel
                 : Page();
         }
 
-        var letter = new Letter(LetterIdGenerator.GenerateNew(), Form.From, Form.Message, DateTimeOffset.UtcNow, wishes);
+        var deleteKey = DeleteKey.GenerateNew();
+        var letter = new Letter(LetterIdGenerator.GenerateNew(), Form.From, Form.Message, DateTimeOffset.UtcNow, wishes, DeleteKey.Hash(deleteKey));
         await store.SaveAsync(letter, images, ct);
 
-        return Redirect($"/letter/{letter.Id}?sent=true");
+        // The letter page opens in the language the letter was written in (Languages). The page script
+        // gets the delete key too and keeps it in this browser; sent without the script, a letter can't be deleted.
+        var letterPage = $"{HttpContext?.Request.PathBase}/letter/{letter.Id}?sent=true";
+        return SentInTheBackground()
+            ? new JsonResult(new { letterPage, letter.Id, deleteKey })
+            : Redirect(letterPage);
     }
 
     /// <summary>
@@ -65,7 +73,7 @@ public class CreateModel(ILetterStore store) : PageModel
             CheckText($"{field}.{nameof(WishForm.Name)}", Form.Wishes[i].Name);
             if (Form.Wishes[i].Link is { } link && !Wish.IsWebLink(link))
             {
-                ModelState.AddModelError($"{nameof(Form)}.{field}.{nameof(WishForm.Link)}", "That isn't a web link. Copy it from your browser's address bar.");
+                ModelState.AddModelError($"{nameof(Form)}.{field}.{nameof(WishForm.Link)}", words["That isn't a web link. Copy it from your browser's address bar."]);
             }
         }
     }
@@ -76,8 +84,8 @@ public class CreateModel(ILetterStore store) : PageModel
         var key = $"{nameof(Form)}.{field}";
         if (ModelState.GetFieldValidationState(key) == ModelValidationState.Invalid) return;
 
-        if (LetterText.HasStackedMarks(text)) ModelState.AddModelError(key, StackedMarksMessage);
-        else if (LetterText.HasContactDetails(text)) ModelState.AddModelError(key, ContactDetailsMessage);
+        if (LetterText.HasStackedMarks(text)) ModelState.AddModelError(key, words[StackedMarksMessage]);
+        else if (LetterText.HasContactDetails(text)) ModelState.AddModelError(key, words[ContactDetailsMessage]);
     }
 
     /// <summary>Checks one wish's pictures, adds the good ones to <paramref name="images"/> and returns the wish.</summary>
@@ -94,7 +102,7 @@ public class CreateModel(ILetterStore store) : PageModel
 
             if (file.Length > LetterLimits.MaxImageBytes)
             {
-                ModelState.AddModelError(key, $"This picture is over {LetterLimits.MaxImageMb} MB. Try a different picture.");
+                ModelState.AddModelError(key, words["This picture is over {0} MB. Try a different picture.", LetterLimits.MaxImageMb]);
                 continue;
             }
 
@@ -106,7 +114,7 @@ public class CreateModel(ILetterStore store) : PageModel
 
             if (ImageKind.Detect(bytes) is not { } kind)
             {
-                ModelState.AddModelError(key, "This picture isn't a JPG, PNG or WebP.");
+                ModelState.AddModelError(key, words["This picture isn't a JPG, PNG or WebP."]);
                 continue;
             }
 
