@@ -2,14 +2,15 @@
 // sits in front of it (design/DESIGN.md §2). The drawing itself lives in scene.js.
 //
 // Two attributes on <html> carry the state, and CSS does the fading:
-//   data-diorama="plain" | "delivery" | "play" | "greet" | "wait"   which version of the scene this page shows (set by the server)
+//   data-diorama="plain" | "delivery" | "play" | "greet" | "wait"   which version of the scene this page shows (set by the server;
+//                                       the inline script makes "play" into "arrive" for a letter this browser hasn't opened yet)
 //   data-diorama-front                  the scene is in front and the content is faded out
 //
 // The inline script in _Layout sets data-diorama-front before the first paint (first arrival in the
 // tab, or a letter just sent). startDiorama() takes over from it.
 
 import { createScene } from "./scene.js";
-import { flyLetter, CATCH_MS } from "./letter-flight.js";
+import { flyLetter, flyLetterOut, CATCH_MS } from "./letter-flight.js";
 
 const OPENING_MS = 3000;           // rule 5: on first arrival the scene plays alone for 3 s
 const DELIVERY_LEAD_S = 3;         // rule 6: the delivery starts about 3 s before Astro dashes off...
@@ -27,6 +28,7 @@ const RETURN_MS = 400;             // a letter that couldn't be sent: the card g
 const ASTRO_SPRITE = new URL("../../assets/diorama/astro.png", import.meta.url);
 const FRONT = "data-diorama-front";
 const CAUGHT = "data-letter-caught"; // Create: Astro has caught the letter, so the sending card shows
+const ARRIVAL = "data-arrival";      // A first opening: "waiting" while the card shows, "leaving" as it goes (rule 7a)
 
 const root = document.documentElement;
 const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
@@ -117,11 +119,12 @@ async function start(content, waiting) {
   const delivering = root.dataset.diorama === "delivery";
   const playing = root.dataset.diorama === "play";
   const greeting = root.dataset.diorama === "greet";
+  const arriving = root.dataset.diorama === "arrive";
   const canvas = document.getElementById("diorama");
   const panel = document.getElementById("panel");
   const sceneWindow = document.getElementById("scene-window");
 
-  const variant = delivering ? "deliver" : playing ? "play" : greeting ? "greet" : waiting ? "wait" : undefined;
+  const variant = delivering ? "deliver" : playing ? "play" : arriving ? "arrive" : greeting ? "greet" : waiting ? "wait" : undefined;
   const scene = createScene({ astroImage: await loadImage(ASTRO_SPRITE), variant });
   // The delivery runs on its own clock from this point, while the sky carries on unbroken (rule 8)
   const startAt = delivering ? scene.delivery.dash - DELIVERY_LEAD_S : 0;
@@ -130,9 +133,9 @@ async function start(content, waiting) {
   // background starts at 0x0, and some size changes never fire a window "resize").
   new ResizeObserver(() => frame(canvas, scene, panel, sceneWindow)).observe(canvas.parentElement);
 
-  const still = { scene: STILL_PLAIN_S, routine: delivering ? startAt : scene.routine?.still };
+  const still = { scene: STILL_PLAIN_S, routine: delivering ? startAt : scene.routine?.still, cue: playing ? { envelope: true } : null };
   const routine = createRoutineClock(startAt);
-  const cues = greeting ? createReactions(scene, canvas, routine) : waiting;
+  const cues = greeting ? createReactions(scene, canvas, routine) : arriving ? createArrival(scene, canvas, routine, content) : waiting;
   play(canvas, scene, createClock(), routine, cues, still, content);
   requestAnimationFrame(() => paintAroundScene(canvas)); // after play's first frame, queued just before
 
@@ -140,7 +143,7 @@ async function start(content, waiting) {
     content.show();
   } else if (delivering) {
     showContentAfter((scene.delivery.gone - startAt) * 1000 + AFTER_DELIVERY_MS, content);
-  } else {
+  } else if (!arriving) { // the arrival shows it when the reader opens the letter (createArrival)
     showContentAfter(OPENING_MS, content);
   }
   return { scene, canvas };
@@ -194,7 +197,7 @@ function play(canvas, scene, clock, routine, cues, still, content) {
   const update = () => {
     cancelAnimationFrame(request);
     if (reducedMotion.matches) {
-      scene.render(ctx, still.scene, still.routine);
+      scene.render(ctx, still.scene, still.routine, still.cue);
       content.show();
     } else {
       request = requestAnimationFrame(loop);
@@ -213,6 +216,7 @@ function createRoutineClock(from) {
   let pausedAt = null;
   const clock = (now) => from + ((pausedAt ?? now) - startedAt) / 1000;
   clock.pause = (now) => { pausedAt ??= now; };
+  clock.jump = (to, now) => { startedAt = now - (to - from) * 1000; };
   clock.resume = (now) => {
     if (pausedAt === null) return;
     startedAt += now - pausedAt;
@@ -324,6 +328,104 @@ function createWaiting() {
   };
 }
 
+// ---- The arrival (a letter's first opening, rule 7a) ------------------------------
+
+// Astro crash-lands with the letter (a click or key cuts that short), the card asks, and he waits. The
+// card's button or a click on him opens it: he throws it to the page, and the real letter comes in.
+// at(now) gives the ages (seconds, Infinity for never) that scene.js reads.
+function createArrival(scene, canvas, routine, content) {
+  const card = document.querySelector("[data-arrival-card]");
+  const button = card?.querySelector("button");
+  const age = (at, now) => at === null ? Infinity : Math.max(0, now - at) / 1000;
+  const causes = new Set(); // "pointer" and/or "focus": what keeps him bouncing
+  let waiting = false, byKeyboard = false;
+  let pressedAt = null, openedAt = null, pointedAt = null;
+
+  const open = () => {
+    if (pressedAt !== null) return;
+    pressedAt = performance.now();
+    root.setAttribute(ARRIVAL, "leaving");
+    rememberOpened();
+    setTimeout(async () => {
+      try {
+        const flight = flyLetterOut(lettersWords(card), mouthOnScreen(scene, canvas), landingBox(card),
+          { plain: scene.letter.art(false), sealed: scene.letter.art(true) });
+        await flight.opened;
+        flight.fade();
+      } catch (error) {
+        console.error("The letter's flight failed", error);
+      }
+      root.removeAttribute(ARRIVAL);
+      content.show();
+    }, scene.arrival.give * 1000);
+  };
+
+  const setCause = (cause, on) => {
+    if (on) causes.add(cause);
+    else causes.delete(cause);
+    if (!causes.size) pointedAt = null;
+    else pointedAt ??= performance.now();
+  };
+  button?.addEventListener("click", open);
+  button?.addEventListener("pointerenter", () => setCause("pointer", true));
+  button?.addEventListener("pointerleave", () => setCause("pointer", false));
+  button?.addEventListener("focus", () => setCause("focus", button.matches(":focus-visible")));
+  button?.addEventListener("blur", () => setCause("focus", false));
+
+  const cutShort = () => {
+    const now = performance.now();
+    if (routine(now) < scene.arrival.length) routine.jump(scene.arrival.length, now);
+  };
+  addEventListener("click", (e) => {
+    if (!root.hasAttribute(FRONT) || pressedAt !== null) return;
+    if (!waiting) { cutShort(); return; }
+    const box = astroBox(scene, canvas);
+    if (e.clientX >= box.left && e.clientX < box.right && e.clientY >= box.top && e.clientY < box.bottom) open();
+  });
+  addEventListener("keydown", () => {
+    if (!root.hasAttribute(FRONT) || waiting) return;
+    byKeyboard = true;
+    cutShort();
+  });
+
+  return {
+    at(now) {
+      // The letter came in some other way (reduced motion turned on, back to this page): the job is done
+      if (openedAt === null && !root.hasAttribute(FRONT)) openedAt = now;
+      if (!waiting && !button) content.show();
+      else if (!waiting && routine(now) >= scene.arrival.card) {
+        waiting = true;
+        root.setAttribute(ARRIVAL, "waiting");
+        if (byKeyboard) button.focus({ preventScroll: true });
+      }
+      return { pressed: age(pressedAt, now), opened: age(openedAt, now), pointed: age(pointedAt, now) };
+    },
+  };
+}
+
+// So this browser's next visit shows the letter at once (the inline script in _Layout reads it)
+function rememberOpened() {
+  try { localStorage.setItem(`letter-opened:${root.dataset.letter}`, "1"); } catch { /* not remembered */ }
+}
+
+function lettersWords(card) {
+  return { from: card.dataset.from, message: document.querySelector(".paper .hand")?.textContent ?? "" };
+}
+
+function mouthOnScreen(scene, canvas) {
+  const rect = canvas.getBoundingClientRect();
+  const pixel = rect.width / scene.W;
+  const { x, y } = scene.arrival.mouth;
+  return { left: rect.left + x * pixel, top: rect.top + y * pixel, pixel };
+}
+
+// The envelope lands where the card was, with room for the sheet to rise above and below it
+function landingBox(card) {
+  const box = card.getBoundingClientRect();
+  const height = Math.min(innerHeight, Math.max(box.height + 120, 300));
+  return { left: box.left, width: box.width, top: Math.max(0, box.top + box.height / 2 - height / 2), height };
+}
+
 // Astro's sprite box on screen, in CSS pixels.
 function astroBox(scene, canvas) {
   const rect = canvas.getBoundingClientRect();
@@ -388,6 +490,7 @@ function frame(canvas, scene, panel, sceneWindow) {
     top: `${Math.round(vh - height) / dpr}px`,
   });
   placeInWindow(canvas, sceneWindow, vh / dpr);
+  scene.arrival?.comesFrom(Math.ceil((vw - Math.round(left)) / scale) + 8);
 }
 
 // Rule 13: below the window on phones, the page takes the colour of the scene's bottom edge, so the

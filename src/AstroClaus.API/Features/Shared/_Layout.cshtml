@@ -17,8 +17,9 @@
     }.ToDictionary(english => english, english => T[english].Value);
 }
 <!DOCTYPE html>
-@* ViewData["Diorama"]: "delivery" on the page a letter was just sent to, "play" on a letter opened by a reader, "greet" on the landing, "wait" on Create, "none" for no scene at all (a deleted letter's fireplace), otherwise the plain scene (design/DESIGN.md §2). *@
-<html lang="@(spanish ? "es" : "en")" data-diorama="@(ViewData["Diorama"] as string ?? "plain")">
+@* ViewData["Diorama"]: "delivery" on the page a letter was just sent to, "play" on a letter opened by a reader, "greet" on the landing, "wait" on Create, "none" for no scene at all (a deleted letter's fireplace), otherwise the plain scene (design/DESIGN.md §2).
+   ViewData["Letter"]: the letter on this page, so the inline script below knows whether this browser has opened it. *@
+<html lang="@(spanish ? "es" : "en")" data-diorama="@(ViewData["Diorama"] as string ?? "plain")" data-letter="@(ViewData["Letter"] as string)">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -63,8 +64,10 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 
     @* Before the first paint, decide whether the diorama starts in front of the content: on the first
-       page of this tab (rule 5) or right after a letter is sent (rule 6). js/diorama takes over from
-       here; if it never does, the content shows anyway (rule 11). *@
+       page of this tab (rule 5), right after a letter is sent (rule 6), or on a letter this browser
+       hasn't opened yet, which Astro then delivers (rule 7a). A letter it has opened shows at once, and
+       the one it just sent counts as opened. No storage, no delivery. js/diorama takes over from here;
+       if it never does, the content shows anyway (rule 11). *@
     <script>
         (function () {
             var root = document.documentElement;
@@ -74,9 +77,20 @@
                 sessionStorage.setItem("diorama:arrived", "1");
             } catch (e) { /* storage unavailable: no opening */ }
 
+            var letter = root.getAttribute("data-letter"), arriving = false;
+            if (letter) {
+                try {
+                    var opened = "letter-opened:" + letter;
+                    if (root.getAttribute("data-diorama") === "delivery") localStorage.setItem(opened, "1");
+                    else if (localStorage.getItem(opened)) firstArrival = false;
+                    else arriving = true;
+                } catch (e) { /* storage unavailable: no delivery */ }
+            }
+
             if (root.getAttribute("data-diorama") === "none") return;
             if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-            if (!firstArrival && root.getAttribute("data-diorama") !== "delivery") return;
+            if (arriving) root.setAttribute("data-diorama", "arrive");
+            else if (!firstArrival && root.getAttribute("data-diorama") !== "delivery") return;
 
             root.setAttribute("data-diorama-front", "");
             var fallback = setTimeout(function () { root.removeAttribute("data-diorama-front"); }, 4000);
@@ -150,6 +164,9 @@
             <span>@T["Astro is taking your letter to the North Pole"]<span class="sending-dots" aria-hidden="true"><span>.</span><span>.</span><span>.</span></span></span>
         </p>
     </div>
+
+    @* Stage: anything a page shows on the scene outside the panel, such as the letter page's card *@
+    @await RenderSectionAsync("Stage", required: false)
 
     <partial name="_TermsModal" />
     <partial name="_SupportModal" />

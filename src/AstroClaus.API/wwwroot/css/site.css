@@ -143,6 +143,38 @@ body {
   visibility: visible;
   transition: opacity 300ms ease, visibility 0s;
 }
+/* A letter's first opening (§2, rule 7a): once Astro has crash-landed, this card asks, in the sending
+   card's place, and he waits. The page script sets data-arrival; a click takes it away at once. */
+.arrival {
+  position: fixed;
+  inset: 0 50% 0 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: var(--space-6);
+  pointer-events: none;
+  visibility: hidden;
+}
+:root[data-diorama-front][data-arrival] .arrival { visibility: visible; }
+.arrival-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  max-width: 360px;
+  padding: var(--space-8);
+  background: var(--surface-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  overflow-wrap: anywhere;
+  pointer-events: auto;
+}
+.arrival-card .btn { margin-top: var(--space-2); }
+:root[data-arrival="waiting"] .arrival-card { animation: rise-in 300ms var(--ease-out) both; }
+:root[data-arrival="leaving"] .arrival-card { animation: arrival-card-out 150ms ease-out both; }
+@keyframes arrival-card-out { to { opacity: 0; transform: translateY(4px) scale(0.98); } }
+
 /* The end of the delivery: the card goes first, then the letter comes in (the entrances below wait too) */
 :root[data-diorama="delivery"] { --after-card: 200ms; }
 :root:not([data-diorama-front]) .panel { transition-delay: var(--after-card, 0ms); }
@@ -228,6 +260,8 @@ body {
   }
   .scene-window { display: block; height: 40svh; }
   .sending-card { inset: 0; }
+  /* Above Astro, who stands low on the screen while the scene is in front */
+  .arrival { inset: 0 0 auto 0; padding-top: 12svh; }
 }
 
 /* Page frame, inside the panel */

@@ -8,16 +8,33 @@
     ViewData["NoIndex"] = true;
     ViewData["ShareTitle"] = T["A letter to Santa"].Value;
     ViewData["Description"] = T["Someone wrote a letter to Santa, and Astro delivered it to the North Pole. Open it to read their wishes."].Value;
-    // Just sent: Astro runs off with the letter. Opened by a reader: Astro plays in the snow.
+    // Just sent: Astro runs off with the letter. Opened by a reader: Astro plays in the snow, after
+    // delivering it the first time this browser opens it (the inline script in _Layout, DESIGN.md §2, rule 7a).
     // On phones he shows in a window above the letter (design/DESIGN.md §2, rule 13).
     if (Model.Letter is not null)
     {
         ViewData["Diorama"] = Model.JustSent ? "delivery" : "play";
         ViewData["SceneWindow"] = true;
+        ViewData["Letter"] = Model.Letter.Id;
     }
 
     // Dates in the page's language, without the dot some languages put after a short month ("nov.")
     string Day(DateTimeOffset date, string format) => date.ToString(format, CultureInfo.CurrentCulture).Replace(".", "");
+}
+
+@* What Astro's delivery asks, once he has crash-landed. Hidden unless he is delivering it (site.css). *@
+@section Stage {
+    @if (Model.Letter is not null && !Model.JustSent)
+    {
+        <div class="arrival">
+            <div class="arrival-card" role="status" data-arrival-card data-from="@Model.Letter.From">
+                <span class="badge badge-aurora pixel-tag">@T["SPECIAL DELIVERY"]</span>
+                <h2 class="title">@T["Astro brought you a letter"]</h2>
+                <p class="body muted">@T["From {0}, to Santa.", Model.Letter.From]</p>
+                <button type="button" class="btn btn-primary">@T["Open the letter"]</button>
+            </div>
+        </div>
+    }
 }
 
 @if (Model.Letter is { } letter)

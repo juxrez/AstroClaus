@@ -7,7 +7,7 @@
 // apart from its interface: it uses its own fixed night palette instead of reading the page's
 // colours (rule 3), and it reports where Astro stands and when the delivery run happens.
 //
-// env: { astroImage: a loaded 32x32 Image of Astro, variant: "deliver" | "play" | "greet" | "wait" | undefined }
+// env: { astroImage: a loaded 32x32 Image of Astro, variant: "deliver" | "play" | "arrive" | "greet" | "wait" | undefined }
 
 /* The scene's own night colours. Never read from the site's design system (rule 3). */
 const PALETTE = Object.freeze({
@@ -842,6 +842,7 @@ export function createScene(env) {
      scene's 24 s loop: he barks hello, sits while snow settles on him, shakes it off, snaps at falling
      flakes, sniffs his way off to the right, then walks back in and turns to face us again. */
   var PLAY = env.variant === "play";
+  var ARRIVE = env.variant === "arrive";
   var PL = { T: 26, sit: 4.0, stand: 8.0, shake0: 8.4, shake1: 10.8, play: 12.0, sniff: 15.0, walk: 15.4, back: 22.0, home: 25.0, v: 22 };
   PL.gone = PL.walk + (W + 2 - AX) / PL.v;                                  /* when he has sniffed his way off screen */
   var BARKS = [0.3, 0.85, 2.0, 2.55];                                        /* two double "woof"s */
@@ -877,10 +878,10 @@ export function createScene(env) {
   /* a standing pose, facing right. squash: body pressed down (px); bow: front lowered (0..1); lie: lying
      down (0..1); wiggle: rear lifted (px); tongue: how far it hangs out (px); yawn: mouth wide open;
      letter: the envelope in his mouth; woof / heart: progress of a bark mark / a heart over his head
-     (0..1, -1 for none) */
+     (0..1, -1 for none); noShadow: in the air, far off the ground */
   function basePose() {
     return { x: AX, hop: 0, sit: 0, k: [0, 0, 0, 0], hx: 0, hy: 0, dx: 0, mouth: false, blink: false, snow: 0, wag: 0.25, flip: false,
-             squash: 0, bow: 0, lie: 0, wiggle: 0, tongue: 0, yawn: false, letter: false, woof: -1, heart: -1 };
+             squash: 0, bow: 0, lie: 0, wiggle: 0, tongue: 0, yawn: false, letter: false, woof: -1, heart: -1, noShadow: false };
   }
 
   /* the pose at routine time r; null while he is off screen */
@@ -969,7 +970,7 @@ export function createScene(env) {
     }
     /* shadow and nose glow on the scene, then the figure */
     var air = p.hop > 2;
-    ditherEllipse(c, p.x + 16, AY + 30, air ? 12 : 15, air ? 1 : 2, SUNK, air ? 0.32 : 0.55);
+    if (!p.noShadow) ditherEllipse(c, p.x + 16, AY + 30, air ? 12 : 15, air ? 1 : 2, SUNK, air ? 0.32 : 0.55);
     var noseX = p.x + 25 + p.hx + p.dx, noseY = AY + 13 + p.hy + p.squash - p.hop;
     if (p.flip) noseX = p.x + 32 - (noseX - p.x);
     putGlow(c, G_NOSE[1], noseX, noseY, 1);
@@ -1017,8 +1018,10 @@ export function createScene(env) {
     c.globalAlpha = 1;
   }
 
-  function drawPlay(c, r) {
+  /* a: { envelope: true } on the still frame with reduced motion: the opened envelope at his paws */
+  function drawPlay(c, r, a) {
     r = ((r % PL.T) + PL.T) % PL.T;
+    if (a && a.envelope) c.drawImage(envelopeArt(false), AX + 28, AY + 23);
     var p = playPose(r);
     if (p) drawPlayAstro(c, r, p);
     drawPlayEffects(c, r, p);
@@ -1205,6 +1208,166 @@ export function createScene(env) {
     c.globalAlpha = 1;
   }
 
+  /* ---------------- the arrival (variant 'arrive'): a letter opened for the first time in this browser ----------------
+     A pup who hasn't got the hang of flying brings it. He comes in across the sky, loses it, lands head-first
+     in the snow with his back end in the air, pops out, shakes himself off and proudly shows the letter. Then
+     he sits and waits with it, for as long as it takes, until the reader opens it. On that he throws it to
+     the page, stays proud for a moment and goes back to playing. He faces left, towards the letter.
+     r: seconds since the page opened. cue (from diorama.js; ages in seconds, Infinity for never):
+     { pressed: since the reader opened it, opened: since the letter showed, pointed: since the button was
+     pointed at (Infinity while it isn't) } */
+  var AR = { fly: 0.2, dive: 1.25, hit: 1.65, pop: 2.45, land: 2.85, shake: 3.0, shaken: 3.65, length: 4.2, card: 3.75, give: 0.14, proud: 3 };
+  var AR_CALM = { pressed: Infinity, opened: Infinity, pointed: Infinity };
+  var AR_DIVE_X = AX + 34;
+  var arComesFrom = W + 8;                                                  /* the right edge of what the screen shows of the scene */
+
+  function arX(r) { return r < AR.dive ? lerp(arComesFrom, AR_DIVE_X, (r - AR.fly) / (AR.dive - AR.fly)) : lerp(AR_DIVE_X, AX, ramp(r, AR.dive, AR.hit)); }
+  function arAir(r) {
+    if (r < AR.dive) return 104 - 22 * ramp(r, AR.fly, AR.dive) + 4 * Math.sin(r * 9);   /* wobbling along */
+    var q = ramp(r, AR.dive, AR.hit);
+    return (82 + 4 * Math.sin(AR.dive * 9)) * (1 - q * q);                  /* then he's falling */
+  }
+  function arFacingLetter() { var p = basePose(); p.flip = true; return p; }
+  function arInAir(c, r, p, air) {
+    p.noShadow = true;
+    c.save(); c.translate(0, -Math.round(air));
+    drawPlayAstro(c, r, p);
+    c.restore();
+  }
+  /* a heap while he's in it, a low scuff once he's out, in the ground's own snow colours */
+  function arSnowHeap(c, r) {
+    var low = ramp(r, AR.pop, AR.pop + 0.25), rx = Math.round(lerp(17, 15, low)), ry = Math.round(lerp(9, 2, low));
+    var col = mix(SNOW_LO, SNOW_HI, 0.5);
+    solidEllipse(c, AX + 16, AY + 31, rx, ry, mix(col, INK, 0.45));
+    solidEllipse(c, AX + 16, AY + 32, rx, ry, col);
+  }
+  /* the snow thrown up when he lands and when he pops out */
+  function arBurst(c, age, n, seed) {
+    if (age < 0 || age > 0.85) return;
+    for (var i = 0; i < n; i++) {
+      var dir = (i / n) * Math.PI + Math.PI, speed = 24 + hash(i, seed) * 60;
+      var x = Math.round(AX + 16 + Math.cos(dir) * speed * age), y = Math.round(AY + 26 + Math.sin(dir) * speed * age + 90 * age * age);
+      c.globalAlpha = 1 - age / 0.85;
+      if (i % 3 === 0) solidEllipse(c, x, y, 1, 1, INK); else P(c, INK, x, y);
+    }
+    c.globalAlpha = 1;
+  }
+  function arFlying(c, r) {
+    var i, p = arFacingLetter(), falling = r >= AR.dive;
+    for (i = 0; i < 26; i++) {                                              /* gold sparkles behind him */
+      var tt = r - i * 0.035; if (tt < AR.fly) continue;
+      c.globalAlpha = (1 - i / 26) * (hash(i + Math.floor(r * 12) * 31, 5) > 0.35 ? 0.95 : 0.35);
+      P(c, i % 3 === 0 ? INK : GOLD, Math.round(arX(tt) + 22), Math.round(AY - arAir(tt) + 18 + 2 * Math.sin(i * 1.9)));
+    }
+    c.globalAlpha = 1;
+    p.letter = true; p.x = Math.round(arX(r)); p.wag = 0.05;
+    /* legs out, paddling; falling, they go every way and his eyes shut */
+    p.k = falling ? (Math.floor(r * 18) % 2 ? [3, -3, -3, 3] : [-3, 3, 3, -3]) : (Math.floor(r * 8) % 2 ? [-4, -3, 4, 3] : [-2, -1, 2, 1]);
+    p.hy = falling ? 2 : -1; p.blink = falling;
+    arInAir(c, r, p, arAir(r));
+  }
+  /* head-first in the snow, back end in the air: a clean quarter turn of the sprite, kicking */
+  function arBuried(c, r) {
+    var thud = r - AR.hit < 0.18 ? (Math.floor(r * 40) % 2 ? 2 : -2) : 0;
+    c.save(); c.translate(thud, 0);
+    c.save();
+    c.beginPath(); c.rect(0, 0, W, AY + 23); c.clip();
+    c.translate(AX + 16 + Math.floor(r * 9) % 2, AY + 25);
+    c.rotate(Math.PI / 2);
+    c.drawImage(A.sprite, -16, -16);
+    c.restore();
+    arSnowHeap(c, r);
+    c.restore();
+    arBurst(c, r - AR.hit, 26, 91);
+  }
+  function arOut(c, r) {
+    var p = arFacingLetter(), i;
+    arSnowHeap(c, r);
+    arBurst(c, r - AR.pop, 14, 92);
+    p.letter = true;
+    if (r < AR.land) {                                                      /* pops out, covered in snow */
+      p.snow = 1; p.k = [-3, -2, 3, 2]; p.hy = -1; p.wag = 0.05;
+      arInAir(c, r, p, 18 * Math.sin(Math.PI * (r - AR.pop) / (AR.land - AR.pop)));
+      return;
+    }
+    if (r < AR.shake) { p.snow = 1; p.squash = 1; p.blink = true; }
+    else if (r < AR.shaken) {                                               /* the shake, as in the play routine */
+      var edge = r - AR.shake < 0.15 || AR.shaken - r < 0.15;
+      p.dx = (Math.floor(r * 16) % 2 ? 1 : -1) * (edge ? 1 : 2);
+      p.hx = -Math.sign(p.dx); p.blink = true; p.wag = 0.05;
+      for (i = 0; i < 18; i++) {
+        var s = r - AR.shake - (i % 5) * 0.09; if (s < 0 || s > 0.7) continue;
+        c.globalAlpha = 1 - s / 0.7;
+        P(c, INK, Math.round(AX + 4 + hash(i, 73) * 24 + (hash(i, 71) - 0.5) * 60 * s), Math.round(AY + 6 + hash(i, 74) * 12 - (14 + hash(i, 72) * 26) * s + 45 * s * s));
+      }
+      c.globalAlpha = 1;
+    } else {                                                                /* ta-da: proud bounces, letter unharmed */
+      var u = r - AR.shaken;
+      p.wag = 0.05; p.hy = -1;
+      p.hop = Math.round(3 * Math.abs(Math.sin(Math.PI * u / 0.28)));
+      if (p.hop > 1) p.k = [-2, -1, 2, 1]; else p.squash = 1;
+      for (i = 0; i < 5; i++) {
+        var q = fract(u / 0.55 + i / 5);
+        c.globalAlpha = Math.sin(Math.PI * q);
+        P(c, GOLD, Math.round(AX - 8 + 4 * i + 2 * Math.sin(i * 3)), Math.round(AY + 8 - q * 14));
+      }
+      c.globalAlpha = 1;
+    }
+    drawPlayAstro(c, r, p);
+  }
+  /* sits with the letter. Every few seconds a little shuffle of the front paws: "here, it's for you" */
+  function arWaiting(s, p) {
+    var nudge = s % 4.2;
+    p.letter = true; p.sit = ramp(s, 0, 0.3); p.hy = -Math.round(p.sit); p.wag = 0.14;
+    p.blink = fract(s / 3.7) < 0.04;
+    if (s > 3 && nudge < 0.72) {
+      p.sit = 1 - Math.min(ramp(nudge, 0, 0.1), 1 - ramp(nudge, 0.62, 0.72));
+      p.hop = nudge > 0.1 && nudge < 0.62 ? Math.round(2 * Math.abs(Math.sin(Math.PI * (nudge - 0.1) / 0.26))) : 0;
+      p.wag = 0.05; p.hy = -1;
+    }
+  }
+  /* the button is pointed at: he bounces, letter and all */
+  function arEager(s, p) {
+    p.letter = true; p.wag = 0.05; p.hy = -1;
+    p.hop = Math.round(3 * Math.sin(Math.PI * (s % 0.36) / 0.36));
+    if (p.hop > 1) p.k = [-2, -1, 2, 1]; else p.squash = 1;
+  }
+  /* the reader opened it: head down, then up with a throw, and he watches it go */
+  function arGiving(s, p) {
+    if (s < AR.give) { p.letter = true; p.hy = 2; p.squash = 1; return; }
+    var q = s - AR.give;
+    p.hy = q < 0.2 ? -2 : -1; p.mouth = q < 0.3; p.wag = 0.05;
+    p.hop = q < 0.4 ? Math.round(4 * Math.sin(Math.PI * q / 0.4)) : 0;
+    if (p.hop > 1) p.k = [-2, -1, 2, 1];
+    if (q >= 0.4) pant(q, p);
+  }
+  /* the job is done: proud for a moment, then the play routine */
+  function arOffDuty(c, s) {
+    if (s >= AR.proud) { drawPlay(c, s - AR.proud); return; }
+    var p = arFacingLetter();
+    p.sit = ramp(s, 0, 0.3); p.hy = -Math.round(p.sit);
+    pant(s, p);
+    p.woof = woofAt(s, [0.35, 0.8]);
+    if (p.woof >= 0 && p.woof < 0.55) { p.mouth = true; p.tongue = 0; }
+    drawPlayAstro(c, s, p);
+    if (p.woof >= 0) drawWoof(c, p, p.woof);
+  }
+  function drawArrive(c, r, cue) {
+    var a = cue || AR_CALM;
+    r = Math.max(0, r);
+    if (r < AR.fly) return;
+    if (r < AR.hit) { arFlying(c, r); return; }
+    if (r < AR.pop) { arBuried(c, r); return; }
+    if (r < AR.length) { arOut(c, r); return; }
+    if (a.opened < AR.proud) arSnowHeap(c, r);
+    if (a.opened < Infinity) { arOffDuty(c, a.opened); return; }
+    var p = arFacingLetter();
+    if (a.pressed < Infinity) arGiving(a.pressed, p);
+    else if (a.pointed < Infinity) arEager(a.pointed, p);
+    else arWaiting(r - AR.length, p);
+    drawPlayAstro(c, r, p);
+  }
+
   /* the delivery run at delivery time d (0..T) */
   function drawDelivery(c, d) {
     if (d >= RUN.t0 && d < RUN.t0 + RUN.tauEnd) { drawAstroRun(c, d); return; }
@@ -1219,15 +1382,16 @@ export function createScene(env) {
   function drawActor(c, t, r, a) {
     if (WAIT) { drawWait(c, r === undefined ? t : r, a); return; }
     if (GREET) { drawGreet(c, r === undefined ? t : r, a); return; }
-    if (PLAY) { drawPlay(c, r === undefined ? t : r); return; }
+    if (PLAY) { drawPlay(c, r === undefined ? t : r, a); return; }
+    if (ARRIVE) { drawArrive(c, r === undefined ? t : r, a); return; }
     if (DELIVER) { drawDelivery(c, r); return; }
     drawAstro(c, t);
   }
 
   /* ------------------------------------------------------------------ frame */
-  /* t: scene loop time. r: the routine's own time (variants 'play', 'greet', 'wait', and 'deliver',
+  /* t: scene loop time. r: the routine's own time (variants 'play', 'arrive', 'greet', 'wait', and 'deliver',
      whose run has its own clock so the sky carries on unbroken while it starts with the page).
-     a: a reaction ('greet') or what the visitor has done ('wait'). */
+     a: a reaction ('greet') or what the visitor has done ('wait', 'arrive'). */
   function render(c, t, r, a) {
     t = ((t % T) + T) % T;
     if (DELIVER) r = r === undefined ? t : ((r % T) + T) % T;
@@ -1260,8 +1424,13 @@ export function createScene(env) {
     W: W, H: H, T: T, render: render, focusX: AX + 16,
     astro: { x0: AX, x1: AX + 32, y0: AY, y1: AY + 32 },                   /* Astro's sprite box, in scene pixels */
     delivery: DELIVER ? { dash: RUN.t0, gone: RUN.t0 + RUN.tauEnd } : null, /* when he dashes off, and when he has left the screen */
-    routine: PLAY ? { still: 6.5 } : GREET ? { still: GR.hello + 11 } : WAIT ? { still: 10 } : null, /* the routine's still frame (sitting) */
+    routine: PLAY ? { still: 6.5 } : ARRIVE ? { still: AR.length + 1 } : GREET ? { still: GR.hello + 11 } : WAIT ? { still: 10 } : null, /* the routine's still frame (sitting) */
     petLength: GR.pet,                                                      /* how long his reaction to a click lasts ('greet') */
-    letter: { x: AX + 27, y: AY + 14, art: envelopeArt }                    /* where the envelope sits in his mouth as he catches it ('wait') */
+    letter: { x: AX + 27, y: AY + 14, art: envelopeArt },                   /* where the envelope sits in his mouth as he catches it ('wait') */
+    arrival: ARRIVE ? {                                                     /* the moments diorama.js and the card go by, in seconds since the page opened */
+      card: AR.card, length: AR.length, give: AR.give,
+      mouth: { x: AX - 5, y: AY + 17 },                                     /* where the envelope is as he throws it, facing left */
+      comesFrom: function (x) { arComesFrom = Math.min(W + 8, x); }         /* the scene's right edge may be cropped off the screen */
+    } : null
   };
 }
